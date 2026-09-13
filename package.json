@@ -1,0 +1,22 @@
+{
+  "name": "geppetto",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Geppetto: model-agnostic governed agent harness. Experiment 001 rig.",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "bin": {
+    "geppetto": "./src/cli.ts"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "geppetto": "node src/cli.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.4",
+    "typescript": "^5.9.3"
+  }
+}

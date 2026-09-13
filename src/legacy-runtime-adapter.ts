@@ -1,4 +1,4 @@
-import type { ExecutionTrace, HarnessManifest, HSCContext, RuntimeAdapter, TaskSpec } from "./types";
+import type { ExecutionTrace, HarnessManifest, HSCContext, RuntimeAdapter, TaskSpec } from "./legacy-types.ts";
 
 export class MockRuntimeAdapter implements RuntimeAdapter {
   async execute(
