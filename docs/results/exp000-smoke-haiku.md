@@ -10,25 +10,25 @@ Runtime: `claude` · Created: 2026-09-13T05:56:00.424Z
 
 | Metric | Geppetto (governed) | Long agent (control) |
 |---|---|---|
-| Lifecycle model tokens (input+cache+output) | 143,672 | 127,094 |
-| Lifecycle input tokens (uncached) | 126 | 96 |
-| Lifecycle cache-read tokens | 117,592 | 107,113 |
-| Lifecycle cache-write tokens | 18,921 | 15,598 |
-| Lifecycle output tokens | 7,033 | 4,287 |
-| Peak active context | 12,663 | 14,473 |
-| Average active context | 6,331 | 12,420 |
-| Cumulative context injected (compiled+retrieved) | 2,805 | 49,678 |
-| Cumulative context avoided | 494 | 0 |
-| Cost | $0.0914 | $0.0646 |
+| Lifecycle model tokens (input+cache+output) | 0 | 0 |
+| Lifecycle input tokens (uncached) | 0 | 0 |
+| Lifecycle cache-read tokens | 0 | 0 |
+| Lifecycle cache-write tokens | 0 | 0 |
+| Lifecycle output tokens | 0 | 0 |
+| Peak active context | 0 | 0 |
+| Average active context | 0 | 0 |
+| Cumulative context injected (compiled+retrieved) | 0 | 0 |
+| Cumulative context avoided | 0 | 0 |
+| Cost | $0.0000 | $0.0000 |
 | Duration | 69s | 52s |
-| Agent calls | 3 | 4 |
+| Agent calls | 0 | 0 |
 | Graph nodes / turns | 5 | 4 |
 | Retries | 0 | 0 |
 | Review loops | 0 | 0 |
 | Replans | 0 | 0 |
 | Context retrievals | 0 | N/A |
-| Context compactions | 4 | N/A |
-| HSC overhead tokens | 1,721 | N/A |
+| Context compactions | 0 | N/A |
+| HSC overhead tokens | 0 | N/A |
 | Acceptance criteria passed | 3/3 | 3/3 |
 | Tests passed / failed | 2 / 0 | 2 / 0 |
 | Blind review score (0-10) | 9 (10 findings, as "B") | 9 (10 findings, as "A") |
@@ -39,12 +39,12 @@ Runtime: `claude` · Created: 2026-09-13T05:56:00.424Z
 
 | Metric | Value | Definition |
 |---|---|---|
-| Context reduction (peak) | 12.5% | 1 − governed peak / control peak |
-| Context reduction (avg) | 49.0% | 1 − governed avg / control avg |
-| Lifecycle token reduction | -13.0% | 1 − governed lifecycle / control lifecycle |
-| Cost reduction | -41.5% | 1 − governed cost / control cost |
+| Context reduction (peak) | — | 1 − governed peak / control peak |
+| Context reduction (avg) | — | 1 − governed avg / control avg |
+| Lifecycle token reduction | — | 1 − governed lifecycle / control lifecycle |
+| Cost reduction | — | 1 − governed cost / control cost |
 | Duration reduction | -33.8% | 1 − governed elapsed / control elapsed |
-| Tokens saved | -16,578 | control − governed lifecycle tokens (negative = Geppetto cost more) |
+| Tokens saved | 0 | control − governed lifecycle tokens (negative = Geppetto cost more) |
 | HSC overhead / tokens saved | n/a (no savings) | tokens spent maintaining state ÷ tokens saved |
 | Retrieval overhead | 0 tokens over 0 calls | context pulled back because it was omitted from L0 |
 | Compaction ratio | 3.03× | Σ pre-compaction / Σ post-compaction |
