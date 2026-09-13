@@ -1,88 +1,39 @@
-# HeldyOS JIT Swarm MVP
+# Geppetto MVP — governed agent harness + Experiment 001
 
-## Purpose
+Geppetto is a model-agnostic harness that turns a task into an execution graph, builds specialists just in time, compiles the minimum context each one needs, keeps canonical state in HSC, and measures every token along the way. This repository is both the harness and its first experiment: **does governed, context-minimal multi-agent execution use less lifecycle context than one long-running agent, at equal quality?**
 
-This MVP tests one narrow hypothesis:
+The hypothesis is not assumed. The system is instrumented so the traces answer it.
 
-> A planning system that compiles task-specific agents, prompts, tools, context scopes, and swarm topology just in time can outperform a fixed multi-agent harness on quality, cost, latency, and recoverability.
-
-This repository is intentionally not the full HeldyOS architecture. It is an experiment rig.
-
-## MVP Loop
-
-```text
-Task
-  ↓
-HSC-lite Task Context
-  ↓
-Planner
-  ↓
-Capability Graph
-  ↓
-Agent Factory
-  ↓
-Tool + Skill + Prompt Resolution
-  ↓
-JIT Harness Compiler
-  ↓
-Ruflo Runtime Adapter
-  ↓
-Swarm Execution
-  ↓
-Evaluator
-  ↓
-Trace + Metrics + Candidate Promotions
+```
+Task → HSC → Planner → Graph → [Capability analysis → Agent Factory → Context Compiler → Router → Runtime]
+     → Evaluation → State promotion / rejection → Context Governor → next node → Result
 ```
 
-## What is being tested
+## Quick start
 
-Two conditions execute the same benchmark task set.
+```bash
+npm install                     # typescript for typecheck only; zero runtime deps (Node ≥ 24)
+npm test                        # 22 tests on the mock runtime
+npm run typecheck
 
-### A. Static baseline
-A fixed planner → researcher → builder → reviewer swarm with fixed prompts and tools.
+node src/cli.ts experiment --task tasks/smoke.json --runtime mock             # dry run, no model calls
+node src/cli.ts run --task tasks/smoke.json --runtime claude --cap haiku      # governed run on the Claude CLI runtime
+node src/cli.ts experiment --task tasks/exp001-registry.json --runtime claude --blind-model sonnet
+node src/cli.ts report --dir runs/<experiment-id>
+```
 
-### B. JIT condition
-The planner outputs capability requirements. The Agent Factory creates only the agents needed for the task, selects their tools and prompt modules, and the Harness Compiler chooses topology, routing, retries, memory policy, and evaluation gates.
+The real runtime is the Claude Code CLI in headless mode (`claude -p --output-format json`); it reports provider token usage and cost per call. No API key handling lives in this repo. Everything runtime-specific sits behind `RuntimeAdapter` in `src/runtime.ts`.
 
-Compare:
+## What is here
 
-- output quality
-- task completion rate
-- number of model calls
-- token usage / cost
-- elapsed execution time
-- unnecessary tool calls
-- recovery after injected failures
-- context precision
-- evaluator disagreement
-- reusable agent-pattern discovery
+- `src/` — the harness (see `docs/GEPPETTO-ARCHITECTURE.md` for the module map and invariants)
+- `tests/` — behaviour tests: HSC promotion/conflict/decay, compaction, rehydration, planner loops/replans, router reasons, orchestrator scenarios, control accumulation, end-to-end experiment
+- `tasks/` — task definitions (`smoke.json`, `exp001-registry.json`)
+- `docs/EXPERIMENT-001.md` — protocol, metrics, governance labels, caveats
+- `docs/RESULTS-001.md` — what the traces said (written after the run)
+- `runs/` — run artifacts (symlinked to `runs.nosync/` so iCloud leaves them alone); experiment reports are copied into `docs/results/`
+- `docs/ARCHITECTURE.md`, `docs/MVP-SPEC.md`, … — the original HeldyOS JIT planning documents this MVP grew out of; `src/legacy-*.ts` keep the earlier contracts
 
-## MVP Constraints
+## Governance labels
 
-Do **not** build:
-- a full UI
-- enterprise auth
-- full HSC federation
-- a permanent agent marketplace
-- autonomous promotion without a human gate
-- a custom swarm runtime
-
-Use Ruflo as an execution substrate behind an adapter.
-
-## First success criterion
-
-The MVP is interesting if the JIT condition shows either:
-
-1. materially better quality at similar cost, or
-2. materially lower cost at similar quality,
-
-across multiple task classes, while producing inspectable manifests that explain why the swarm was assembled the way it was.
-
-## Start Here
-
-1. Read `docs/MVP-SPEC.md`
-2. Read `docs/ARCHITECTURE.md`
-3. Implement the contracts in `src/types.ts`
-4. Implement the five pipeline components behind interfaces
-5. Run the experiment in `docs/EXPERIMENT-PLAN.md`
-6. Do not optimize until both baseline and JIT conditions run end-to-end
+The harness itself was written **pre-Geppetto (bootstrap)**. Only tasks executed through `node src/cli.ts experiment|run` are governed, and each run's `summary.json` says so (`governance: full | bootstrap`). Bootstrap work is never reported as a Geppetto measurement.
