@@ -38,6 +38,7 @@ export async function runControl(o: ControlOptions): Promise<WorkflowSummary> {
   let transcriptTokens = 0; let turn = 0; let retries = 0; let findings = 0; let status: WorkflowSummary["status"] = "completed";
   let costSoFar = 0;
   const say = async (label: string, prompt: string, schema?: Record<string, unknown>): Promise<InvocationResult> => {
+    if (task.budget.max_usd && costSoFar > task.budget.max_usd) throw new Error(`budget exceeded: $${costSoFar.toFixed(2)} > $${task.budget.max_usd}`);
     turn++;
     const invocation_id = `ctl-${turn}-${randomUUID().slice(0, 6)}`;
     const promptTokens = estimateTokens(prompt);

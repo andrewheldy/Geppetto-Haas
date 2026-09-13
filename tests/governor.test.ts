@@ -63,3 +63,11 @@ test("govern() decays and reconciles conflicts, escalating ties", () => {
   assert.equal(r.conflicts, 1); assert.equal(r.escalated, 1);
   assert.equal(tr.count("state.conflict"), 1);
 });
+
+test("redundancy detection: restated decisions are not admitted twice", () => {
+  const { g, hsc } = gov();
+  hsc.add({ kind: "decision", content: "Use a simple ternary operator in greet() for the empty-name case", status: "accepted", producer: "a" });
+  assert.ok(g.isRedundant("decision", "Used simple ternary operator in greet() for empty name case"));
+  assert.equal(g.isRedundant("decision", "Store the ledger as JSONL"), undefined);
+  assert.equal(g.isRedundant("assumption", "Use a simple ternary operator in greet() for the empty-name case"), undefined, "kind-scoped");
+});

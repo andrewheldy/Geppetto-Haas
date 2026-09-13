@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type { EvaluationResult, ExecutionMode, Task, TraceEvent } from "./types.ts";
 import { Orchestrator } from "./orchestrator.ts";
@@ -18,7 +18,9 @@ export interface ExperimentOptions {
 /** Copy the repo (minus node_modules/runs/.git) into an isolated workspace with its own git baseline. */
 export function prepareWorkspace(repoRoot: string, ws: string, source?: string): string {
   mkdirSync(ws, { recursive: true });
-  cpSync(source ? join(repoRoot, source) : repoRoot, ws, { recursive: true, filter: (src) => !/(^|\/)(node_modules(\.nosync)?|runs(\.nosync)?|\.git|\.DS_Store)(\/|$)/.test(src.slice(repoRoot.length)) });
+  const from = source ? join(repoRoot, source) : repoRoot;
+  const skip = /^(node_modules(\.nosync)?|runs(\.nosync)?|\.git|\.DS_Store)$/;
+  for (const name of readdirSync(from)) if (!skip.test(name)) cpSync(join(from, name), join(ws, name), { recursive: true, filter: (src) => !/(^|\/)(node_modules|\.DS_Store)(\/|$)/.test(src) });
   const nm = join(repoRoot, existsSync(join(repoRoot, "node_modules.nosync")) ? "node_modules.nosync" : "node_modules");
   if (existsSync(nm) && !existsSync(join(ws, "node_modules"))) symlinkSync(nm, join(ws, "node_modules"));
   return ws;

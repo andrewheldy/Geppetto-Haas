@@ -127,6 +127,18 @@ export class ContextGovernor {
     };
   }
 
+  /** Redundancy detection: a candidate that restates an injectable entry of the same kind is not admitted twice. */
+  isRedundant(kind: HSCEntry["kind"], content: string): HSCEntry | undefined {
+    const words = (s: string) => new Set(s.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").split(/\s+/).filter((w) => w.length > 2));
+    const a = words(content);
+    for (const e of this.hsc.slice({ kinds: [kind] })) {
+      const b = words(e.content); let inter = 0; for (const w of a) if (b.has(w)) inter++;
+      const jaccard = inter / Math.max(1, a.size + b.size - inter);
+      if (jaccard >= 0.6) return e;
+    }
+    return undefined;
+  }
+
   /** Full potentially-available context: what a monolithic session would be carrying at this point. */
   availableTokens(): number { return this.hsc.tokens() + this.history.totalTokens(); }
 }

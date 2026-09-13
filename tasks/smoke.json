@@ -1,0 +1,15 @@
+{
+  "id": "smoke-hello",
+  "objective": "Add src/hello.ts exporting greet(name: string): string that returns `Hello, <name>!`, plus tests/hello.test.ts using node:test covering a normal name and an empty string (which should return `Hello, stranger!`).",
+  "kind": "software_build",
+  "constraints": ["No new dependencies.", "Use node:test and node:assert/strict.", "Keep the diff minimal."],
+  "acceptance_criteria": [
+    { "type": "file_exists", "path": "src/hello.ts" },
+    { "type": "file_exists", "path": "tests/hello.test.ts" },
+    { "type": "command", "cmd": "node --test tests/hello.test.ts" }
+  ],
+  "context_files": ["package.json", "tests/helpers.ts"],
+  "test_command": "node --test tests/hello.test.ts",
+  "budget": { "max_usd": 3, "max_seconds": 1200 },
+  "max_review_iterations": 1
+}

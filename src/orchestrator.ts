@@ -216,7 +216,7 @@ export class Orchestrator {
     let prompt = `${packet.text}\n\n## Your task (${n.node_type})\n${n.objective}`;
     let result: InvocationResult; let out: AgentOutput; let retrievedTokens = packet.retrieved_tokens; let retrievals = this.governor.retrievals; let rehydrated = 0;
     const startRetrievals = retrievals;
-    let usageAgg = { input: 0, output: 0, cache_read: 0, cache_write: 0 }; let cost = 0; let costEst = false; let tokEst = false; let dur = 0; let peak = 0;
+    let usageAgg = { input: 0, output: 0, cache_read: 0, cache_write: 0 }; let cost = 0; let costEst = false; let tokEst = false; let dur = 0; let peak = 0; let first = 0;
     while (true) {
       const invocation_id = `inv-${randomUUID().slice(0, 8)}`;
       this.tracer.emit("agent.invoked", { model: route.model, prompt_tokens: estimateTokens(prompt), system_tokens: estimateTokens(agent.system_prompt), rehydration: rehydrated }, { node_id: n.node_id, agent_id: agent.agent_id, invocation_id });
@@ -224,6 +224,7 @@ export class Orchestrator {
       usageAgg.input += result.usage.input; usageAgg.output += result.usage.output; usageAgg.cache_read += result.usage.cache_read; usageAgg.cache_write += result.usage.cache_write;
       cost += result.cost_usd; costEst ||= result.cost_estimated; tokEst ||= result.usage.estimated; dur += result.duration_ms;
       peak = Math.max(peak, ...(result.iterations.length ? result.iterations.map(activeContext) : [activeContext(result.usage)]));
+      if (!first) first = activeContext(result.iterations[0] ?? result.usage);
       this.tracer.emit("agent.completed", { usage: result.usage, cost_usd: result.cost_usd, duration_ms: result.duration_ms, turns: result.num_turns, error: result.error, peak_active_context: peak }, { node_id: n.node_id, agent_id: agent.agent_id, invocation_id: result.invocation_id });
       if (result.error) throw new Error(result.error);
       out = coerce(result.structured, result.output_text);
@@ -247,14 +248,23 @@ export class Orchestrator {
 
     // candidate state → validation → promotion / rejection
     const cands: HSCEntry[] = [];
-    const add = (kind: HSCEntry["kind"], content: string, key?: string) => cands.push(this.hsc.add({ kind, content, key, producer: agent.agent_id, node_id: n.node_id, evidence_refs: [c.history_ref], confidence: 0.6, tags: [n.node_id, n.node_type] }));
+    const redundant: string[] = [];
+    const add = (kind: HSCEntry["kind"], content: string, key?: string, supersedes?: string) => {
+      const dup = !key && this.governor.isRedundant(kind, content);
+      if (dup) { redundant.push(`${kind}: ${content.slice(0, 60)} ≈ ${dup.id}`); return; }
+      cands.push(this.hsc.add({ kind, content, key, supersedes, producer: agent.agent_id, node_id: n.node_id, evidence_refs: [c.history_ref], confidence: 0.6, tags: [n.node_id, n.node_type] }));
+    };
     for (const d of out.decisions) add("decision", d);
     for (const a of out.assumptions) add("assumption", a);
     for (const q of out.questions) add("question", q);
-    for (const f of out.files_changed) add("artifact", `${f} (changed in ${n.node_id})`, `artifact:${f}`);
+    if (agent.authority !== "read") for (const f of out.files_changed) {
+      const path = f.trim().split(/[\s(]/)[0]; const key = `artifact:${path}`;
+      const prev = this.hsc.state.entries.find((e) => e.key === key && !["superseded", "rejected", "archived"].includes(e.status));
+      add("artifact", `${path} (changed in ${n.node_id})`, key, prev?.id);
+    }
     if (out.summary) add("completed_action", `${n.node_id}: ${out.summary.slice(0, 300)}`);
     if (n.node_type === "review") add("evidence", `Review ${n.node_id}: ${out.verdict}${out.findings.length ? ` — ${out.findings.length} findings` : ""}`, `review:${n.iteration}`);
-    this.tracer.emit("candidate_state.created", { count: cands.length, ids: cands.map((e) => e.id) }, { node_id: n.node_id, agent_id: agent.agent_id });
+    this.tracer.emit("candidate_state.created", { count: cands.length, ids: cands.map((e) => e.id), redundant_dropped: redundant.length, redundant }, { node_id: n.node_id, agent_id: agent.agent_id });
     const validation = await this.validateNode(n, out);
     if (validation.ok) {
       for (const e of cands) this.hsc.promote([e.id], `validated at ${n.node_id}`, e.kind === "assumption" ? "tentative" : e.kind === "question" ? "active" : "accepted");
@@ -267,7 +277,7 @@ export class Orchestrator {
     const hscDelta = cands.reduce((a, e) => a + estimateTokens(e.content), 0);
     this.costSoFar += cost; this.tokensSoFar += usageAgg.input + usageAgg.output + usageAgg.cache_read + usageAgg.cache_write;
 
-    this.ledger.record(this.ledgerRow(n, agent.agent_id, result.invocation_id, result.model, packet, usageAgg, { retrieved: retrievedTokens, retrievals: rehydrated + packet.sections.filter((s) => s.source === "history").length, compacted: c.pre_tokens - c.post_tokens, compactions: 1, cost, cost_est: costEst, tok_est: tokEst, duration_ms: dur, peak, hsc_delta: hscDelta }));
+    this.ledger.record(this.ledgerRow(n, agent.agent_id, result.invocation_id, result.model, packet, usageAgg, { retrieved: retrievedTokens, retrievals: rehydrated + packet.sections.filter((s) => s.source === "history").length, compacted: c.pre_tokens - c.post_tokens, compactions: 1, cost, cost_est: costEst, tok_est: tokEst, duration_ms: dur, peak, first, system_tokens: estimateTokens(agent.system_prompt), hsc_delta: hscDelta }));
     this.tracer.emit("evaluation.completed", { node: n.node_id, ok: validation.ok, checks: validation.checks }, { node_id: n.node_id });
     if (!validation.ok) throw new Error(`validation failed: ${validation.reason}`);
   }
@@ -287,15 +297,17 @@ export class Orchestrator {
   }
 
   private ledgerRow(n: GraphNode, agent_id: string, invocation_id: string, model: string, packet: ContextPacket | undefined, usage: { input: number; output: number; cache_read: number; cache_write: number } | undefined,
-    x: { retrieved?: number; retrievals?: number; compacted?: number; compactions?: number; cost?: number; cost_est?: boolean; tok_est?: boolean; duration_ms?: number; peak?: number; hsc_delta?: number; tool_tokens?: number }): ContextLedgerEntry {
+    x: { retrieved?: number; retrievals?: number; compacted?: number; compactions?: number; cost?: number; cost_est?: boolean; tok_est?: boolean; duration_ms?: number; peak?: number; first?: number; system_tokens?: number; hsc_delta?: number; tool_tokens?: number }): ContextLedgerEntry {
     const u = usage ?? { input: 0, output: 0, cache_read: 0, cache_write: 0 };
     const compiled = packet?.tokens ?? 0;
     const active = x.peak ?? u.input + u.cache_read + u.cache_write;
     return {
       workflow_id: this.o.workflow_id, mode: "governed", node_id: n.node_id, agent_id, invocation_id, model, phase: n.node_type,
       available_context_tokens: packet?.available_tokens ?? this.governor.availableTokens(), compiled_context_tokens: compiled,
-      hsc_tokens: packet?.hsc_tokens ?? 0, retrieved_tokens: x.retrieved ?? 0, file_tokens: packet?.file_tokens ?? 0, tool_tokens: x.tool_tokens ?? Math.max(0, active - compiled - (x.retrieved ?? 0)),
-      prompt_overhead_tokens: usage ? Math.max(0, (u.input + u.cache_read + u.cache_write) - compiled - (x.retrieved ?? 0) - (x.tool_tokens ?? 0)) : 0,
+      hsc_tokens: packet?.hsc_tokens ?? 0, retrieved_tokens: x.retrieved ?? 0, file_tokens: packet?.file_tokens ?? 0,
+      // tool_tokens: context growth inside the invocation (tool results); prompt_overhead: runtime-added tool definitions etc. at the first round-trip
+      tool_tokens: x.tool_tokens ?? Math.max(0, active - (x.first ?? active)),
+      prompt_overhead_tokens: x.first ? Math.max(0, x.first - compiled - (x.retrieved ?? 0) - (x.system_tokens ?? 0)) : 0,
       input_tokens: u.input, output_tokens: u.output, cache_read_tokens: u.cache_read, cache_write_tokens: u.cache_write, active_context_tokens: active,
       compacted_tokens_removed: x.compacted ?? 0, discarded_tokens: packet?.discarded_tokens ?? 0, retrievals: x.retrievals ?? 0, compactions: x.compactions ?? 0,
       hsc_delta_tokens: x.hsc_delta ?? 0, estimated_cost_usd: x.cost ?? 0, cost_estimated: x.cost_est ?? true, tokens_estimated: x.tok_est ?? true,
