@@ -1,11 +1,13 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import type { EvaluationResult, ExecutionMode, Task, TraceEvent } from "./types.ts";
+import type { ContextLedgerEntry, EvaluationResult, ExecutionMode, RuntimeAdapter, Task, TraceEvent } from "./types.ts";
 import { Orchestrator } from "./orchestrator.ts";
 import { runControl } from "./control.ts";
 import { DeterministicPlanner } from "./planner.ts";
 import { DeterministicRouter, type Tier } from "./router.ts";
-import { makeRuntime, type MockScenario } from "./runtime.ts";
+import { ClaudeCliRuntime, makeRuntime, primaryModel, type MockScenario } from "./runtime.ts";
+import { ContextLedger } from "./ledger.ts";
+import { estimateTokens } from "./tokens.ts";
 import { blindReview, evaluateAcceptance } from "./evaluator.ts";
 import { compare, renderReport, type ExperimentSummary, type ModeResult } from "./report.ts";
 import { resetAgentSeq } from "./factory.ts";
@@ -83,6 +85,8 @@ export async function reevaluate(dir: string): Promise<ExperimentSummary> {
     m.dir = join(root, m.summary.mode);
     const fresh = await evaluateAcceptance(task, join(m.dir, "workspace"), runtime, { workflow_id: m.summary.workflow_id, mode: m.summary.mode, retries: m.summary.retries, review_findings: m.evaluation.review_findings });
     m.evaluation = { ...fresh, blind_review: m.evaluation.blind_review };
+    rebuildLedger(m.dir, runtime, task);
+    Object.assign(m.summary, new ContextLedger(join(m.dir, "ledger.jsonl")).totals());
     m.summary.evaluation = m.evaluation;
     writeFileSync(join(m.dir, "evaluation.json"), JSON.stringify(m.evaluation, null, 2));
     writeFileSync(join(m.dir, "summary.json"), JSON.stringify(m.summary, null, 2));
@@ -94,6 +98,41 @@ export async function reevaluate(dir: string): Promise<ExperimentSummary> {
   writeFileSync(join(root, "summary.json"), JSON.stringify(exp, null, 2));
   writeFileSync(join(root, "report.md"), renderReport(exp));
   return exp;
+}
+
+/** Correct ledger rows in place from the raw runtime responses saved under invocations/: primary model, overhead vs tool tokens. */
+export function rebuildLedger(modeDir: string, runtime: RuntimeAdapter, _task: Task): void {
+  const file = join(modeDir, "ledger.jsonl");
+  if (!existsSync(file)) return;
+  const rows: ContextLedgerEntry[] = readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+  const overheadFor = (tools: string[]) => { const k = [...tools].sort().join(","); return OVERHEAD_TABLE[k] ?? OVERHEAD_TABLE["*"] ?? 0; };
+  for (const r of rows) {
+    const inv = join(modeDir, "invocations", `${r.invocation_id}.json`);
+    if (!existsSync(inv)) continue;
+    const j = JSON.parse(readFileSync(inv, "utf8"));
+    let out: any; try { out = JSON.parse(String(j.stdout).trim().split("\n").filter((l: string) => l.startsWith("{")).pop() ?? ""); } catch { continue; }
+    r.model = primaryModel(out?.modelUsage) ?? r.model;
+    const overhead = overheadFor(j.req.tools ?? []);
+    const system = estimateTokens(String(j.req.system_prompt ?? ""));
+    r.prompt_overhead_tokens = overhead;
+    r.tool_tokens = Math.max(0, r.active_context_tokens - r.compiled_context_tokens - r.retrieved_tokens - (r.mode === "governed" ? system : 0) - overhead);
+  }
+  writeFileSync(file, rows.map((r) => JSON.stringify(r)).join("\n") + "\n");
+  void runtime;
+}
+
+/** Measured once per tool set with `calibrateOverhead`; keyed by sorted tool list. "*" is the fallback. Fill via `geppetto calibrate`. */
+export const OVERHEAD_TABLE: Record<string, number> = existsSync(resolve("runs/overhead.json")) ? JSON.parse(readFileSync(resolve("runs/overhead.json"), "utf8")) : {};
+
+export async function calibrate(): Promise<Record<string, number>> {
+  const rt = new ClaudeCliRuntime();
+  const sets = [["Glob", "Grep", "Read"], ["Bash", "Edit", "Glob", "Grep", "Read", "Write"], []];
+  const out: Record<string, number> = {};
+  for (const s of sets) out[[...s].sort().join(",")] = await rt.calibrateOverhead(s, resolve("."));
+  out["*"] = out["Bash,Edit,Glob,Grep,Read,Write"];
+  mkdirSync(resolve("runs"), { recursive: true });
+  writeFileSync(resolve("runs/overhead.json"), JSON.stringify(out, null, 2));
+  return out;
 }
 
 export function reportFromDir(dir: string): string {

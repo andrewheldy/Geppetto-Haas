@@ -2,7 +2,7 @@
 import { parseArgs } from "node:util";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { loadTask, prepareWorkspace, reevaluate, reportFromDir, runExperiment } from "./experiment.ts";
+import { calibrate, loadTask, prepareWorkspace, reevaluate, reportFromDir, runExperiment } from "./experiment.ts";
 import { Orchestrator } from "./orchestrator.ts";
 import { runControl } from "./control.ts";
 import { DeterministicPlanner } from "./planner.ts";
@@ -14,7 +14,8 @@ const USAGE = `geppetto <command> [options]
   run         --task <file> [--mode governed|control] [--runtime mock|claude] [--out runs/...] [--cap haiku|sonnet|opus]
   experiment  --task <file> [--modes governed,control] [--runtime mock|claude] [--cap tier] [--control-model m] [--blind-model m] [--out runs]
   report      --dir runs/<experiment-id>
-  reevaluate  --dir runs/<experiment-id>      re-run deterministic acceptance checks on finished workspaces, regenerate report
+  reevaluate  --dir runs/<experiment-id>      re-run deterministic acceptance checks on finished workspaces, rebuild ledger labels, regenerate report
+  calibrate                                   measure the runtime's fixed per-request overhead per tool set (writes runs/overhead.json)
 `;
 
 async function main() {
@@ -42,6 +43,8 @@ async function main() {
     const exp = await runExperiment({ task, modes: v.modes!.split(",") as any, runtime: v.runtime as any, repo_root: repo, out_root: resolve(v.out ?? "runs"), experiment_id: v.id, cap: v.cap as Tier | undefined, control_model: v["control-model"], blind_model: v["blind-model"], l0_budget: v["l0-budget"] ? +v["l0-budget"] : undefined, max_turns: v["max-turns"] ? +v["max-turns"] : undefined });
     console.log(reportFromDir(join(resolve(v.out ?? "runs"), exp.experiment_id)));
     console.log(`\nartifacts: ${join(resolve(v.out ?? "runs"), exp.experiment_id)}`);
+  } else if (cmd === "calibrate") {
+    console.log(JSON.stringify(await calibrate(), null, 2));
   } else if (cmd === "reevaluate") {
     const exp = await reevaluate(v.dir!);
     console.log(JSON.stringify(exp.comparison, null, 2));

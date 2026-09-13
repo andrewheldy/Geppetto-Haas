@@ -113,7 +113,7 @@ export class ClaudeCliRuntime implements RuntimeAdapter {
     const usage: TokenUsage = { input: u.input_tokens ?? 0, output: u.output_tokens ?? 0, cache_read: u.cache_read_input_tokens ?? 0, cache_write: u.cache_creation_input_tokens ?? 0, total: 0, estimated: false };
     usage.total = usage.input + usage.output + usage.cache_read + usage.cache_write;
     const iterations: TokenUsage[] = (u.iterations ?? []).map((it: any) => { const x = { input: it.input_tokens ?? 0, output: it.output_tokens ?? 0, cache_read: it.cache_read_input_tokens ?? 0, cache_write: it.cache_creation_input_tokens ?? 0, total: 0, estimated: false }; x.total = activeContext(x) + x.output; return x; });
-    const modelUsed = Object.keys(parsed.modelUsage ?? {})[0] ?? req.model;
+    const modelUsed = primaryModel(parsed.modelUsage) ?? req.model;
     let structured = parsed.structured_output as Record<string, unknown> | undefined;
     const text: string = typeof parsed.result === "string" ? parsed.result : JSON.stringify(parsed.result ?? "");
     if (!structured && req.json_schema) { try { structured = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1)); } catch { /* not json */ } }
@@ -122,11 +122,32 @@ export class ClaudeCliRuntime implements RuntimeAdapter {
       duration_ms, model: modelUsed, session_id: parsed.session_id, num_turns: parsed.num_turns ?? 0, error: isErr ? `claude ${parsed.subtype}: ${text.slice(0, 500)}` : undefined };
   }
 
+  /**
+   * Fixed per-request overhead the runtime adds (tool definitions etc.) for a given tool set, measured once with a tiny prompt.
+   * The CLI reports one aggregate usage record per invocation, so this is the only way to split "our packet" from "runtime overhead".
+   */
+  private overheadCache = new Map<string, number>();
+  async calibrateOverhead(tools: string[], cwd: string): Promise<number> {
+    const key = [...tools].sort().join(",");
+    const hit = this.overheadCache.get(key);
+    if (hit !== undefined) return hit;
+    const r = await this.invoke({ invocation_id: `calib-${key.length}`, agent_id: "calibration", node_id: "calibration", model: "haiku", effort: "low", system_prompt: "Reply with OK.", prompt: "OK?", tools, cwd, max_turns: 1 });
+    const v = Math.max(0, activeContext(r.usage) - estimateTokens("Reply with OK.OK?"));
+    this.overheadCache.set(key, v);
+    return v;
+  }
+
   async runCommand(cmd: string, cwd: string, timeoutMs = 10 * 60_000): Promise<CommandResult> {
     const started = Date.now();
     const r = await run("/bin/sh", ["-c", cmd], cwd, undefined, timeoutMs);
     return { cmd, exit_code: r.timedOut ? 124 : r.code, stdout: r.stdout, stderr: r.stderr, duration_ms: Date.now() - started };
   }
+}
+
+/** The primary model of an invocation: Claude Code also makes tiny helper calls on haiku; the real agent is the model with the most output. */
+export function primaryModel(modelUsage: Record<string, { outputTokens?: number }> | undefined): string | undefined {
+  if (!modelUsage) return undefined;
+  return Object.entries(modelUsage).sort((a, b) => (b[1].outputTokens ?? 0) - (a[1].outputTokens ?? 0))[0]?.[0];
 }
 
 function run(bin: string, args: string[], cwd: string, stdin: string | undefined, timeoutMs: number): Promise<{ stdout: string; stderr: string; code: number; timedOut: boolean }> {

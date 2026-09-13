@@ -35,6 +35,7 @@ export async function runControl(o: ControlOptions): Promise<WorkflowSummary> {
   const brief = `# Task\n${task.objective}\n\n## Constraints\n${task.constraints.map((c) => `- ${c}`).join("\n")}\n\n## Acceptance criteria\n${criteria}\n\nTest command: ${testCmd}\nRelevant files: ${(task.context_files ?? []).join(", ") || "(explore the repo)"}`;
   tracer.emit("workflow.created", { task_id: task.id, objective: task.objective, workspace: o.workspace, runtime: o.runtime.name, session_id });
 
+  const overhead = await (o.runtime as { calibrateOverhead?: (t: string[], c: string) => Promise<number> }).calibrateOverhead?.(["Read", "Edit", "Write", "Glob", "Grep", "Bash"], o.workspace) ?? 0;
   let transcriptTokens = 0; let turn = 0; let retries = 0; let findings = 0; let status: WorkflowSummary["status"] = "completed";
   let costSoFar = 0;
   const say = async (label: string, prompt: string, schema?: Record<string, unknown>): Promise<InvocationResult> => {
@@ -51,7 +52,7 @@ export async function runControl(o: ControlOptions): Promise<WorkflowSummary> {
     const row: ContextLedgerEntry = {
       workflow_id: o.workflow_id, mode: "control", node_id: label, agent_id: "monolith", invocation_id, model: r.model, phase: label,
       available_context_tokens: Math.max(available, peak), compiled_context_tokens: Math.max(available, peak), hsc_tokens: 0, retrieved_tokens: 0, file_tokens: 0,
-      tool_tokens: Math.max(0, peak - available), prompt_overhead_tokens: 0,
+      tool_tokens: Math.max(0, peak - available - overhead), prompt_overhead_tokens: overhead,
       input_tokens: r.usage.input, output_tokens: r.usage.output, cache_read_tokens: r.usage.cache_read, cache_write_tokens: r.usage.cache_write, active_context_tokens: peak,
       compacted_tokens_removed: 0, discarded_tokens: 0, retrievals: 0, compactions: 0, hsc_delta_tokens: 0,
       estimated_cost_usd: r.cost_usd, cost_estimated: r.cost_estimated, tokens_estimated: r.usage.estimated, duration_ms: r.duration_ms, attempt: 1, ts: new Date().toISOString(),
