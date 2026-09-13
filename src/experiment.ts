@@ -72,6 +72,30 @@ export async function runExperiment(o: ExperimentOptions): Promise<ExperimentSum
   return exp;
 }
 
+/** Re-score finished runs (deterministic checks only; blind reviews are kept) and regenerate summary + report. */
+export async function reevaluate(dir: string): Promise<ExperimentSummary> {
+  const root = resolve(dir);
+  const exp: ExperimentSummary = JSON.parse(readFileSync(join(root, "summary.json"), "utf8"));
+  const task = loadTask(join(root, "task.json"));
+  const runtime = makeRuntime("claude");
+  for (const m of Object.values(exp.modes)) {
+    if (!m) continue;
+    m.dir = join(root, m.summary.mode);
+    const fresh = await evaluateAcceptance(task, join(m.dir, "workspace"), runtime, { workflow_id: m.summary.workflow_id, mode: m.summary.mode, retries: m.summary.retries, review_findings: m.evaluation.review_findings });
+    m.evaluation = { ...fresh, blind_review: m.evaluation.blind_review };
+    m.summary.evaluation = m.evaluation;
+    writeFileSync(join(m.dir, "evaluation.json"), JSON.stringify(m.evaluation, null, 2));
+    writeFileSync(join(m.dir, "summary.json"), JSON.stringify(m.summary, null, 2));
+  }
+  const g = exp.modes.governed;
+  const gTrace: TraceEvent[] = g ? readFileSync(join(g.dir, "trace.jsonl"), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
+  const gLedger = g ? readFileSync(join(g.dir, "ledger.jsonl"), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
+  exp.comparison = compare(g, exp.modes.control, gTrace, gLedger);
+  writeFileSync(join(root, "summary.json"), JSON.stringify(exp, null, 2));
+  writeFileSync(join(root, "report.md"), renderReport(exp));
+  return exp;
+}
+
 export function reportFromDir(dir: string): string {
   const exp: ExperimentSummary = JSON.parse(readFileSync(join(resolve(dir), "summary.json"), "utf8"));
   for (const m of Object.values(exp.modes)) if (m) m.dir = join(resolve(dir), m.summary.mode);

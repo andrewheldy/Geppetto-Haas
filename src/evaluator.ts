@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import type { AcceptanceCheck, CriterionResult, EvaluationResult, ExecutionMode, RuntimeAdapter, Task } from "./types.ts";
 
 export function parseTestCounts(out: string): { passed?: number; failed?: number } {
-  const p = /# pass (\d+)/.exec(out), f = /# fail (\d+)/.exec(out);
+  const p = /(?:#|ℹ) pass (\d+)/.exec(out), f = /(?:#|ℹ) fail (\d+)/.exec(out);
   if (p || f) return { passed: p ? +p[1] : 0, failed: f ? +f[1] : 0 };
   const m = /(\d+) passing(?:.*?(\d+) failing)?/s.exec(out);
   if (m) return { passed: +m[1], failed: m[2] ? +m[2] : 0 };
