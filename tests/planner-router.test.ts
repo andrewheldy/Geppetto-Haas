@@ -53,3 +53,10 @@ test("router explains itself, escalates on retry, respects caps; factory enforce
   assert.equal(agent.authority, "read"); assert.equal(agent.lifecycle, "ephemeral");
   assert.ok(agent.capabilities.needs_independence);
 });
+
+test("parallel implement nodes only carry file criteria that belong to their subtask", () => {
+  const t = task({ acceptance_criteria: [{ type: "file_exists", path: "src/a.ts" }, { type: "file_exists", path: "src/b.ts" }], subtasks: [{ id: "a", objective: "write src/a.ts" }, { id: "b", objective: "write src/b.ts" }] });
+  const g = new DeterministicPlanner().plan(t, "w");
+  assert.deepEqual(g.nodes.find((n) => n.node_id === "implement:a")!.acceptance_criteria, [{ type: "file_exists", path: "src/a.ts" }]);
+  assert.deepEqual(g.nodes.find((n) => n.node_id === "implement:b")!.acceptance_criteria, [{ type: "file_exists", path: "src/b.ts" }]);
+});

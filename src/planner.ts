@@ -49,7 +49,8 @@ export class DeterministicPlanner implements Planner {
         required_capabilities: ["typescript", "implementation", "test_generation"],
         required_context: [{ kind: "task" }, { kind: "hsc", kinds: ["constraint", "decision", "artifact"] }, { kind: "node_output", node_id: "plan" }, { kind: "files", paths: u.context_files ?? files, max_tokens: 8000 }],
         allowed_tools: IMPL_TOOLS, complexity: "high", reasoning: "high", parallel_group: units.length > 1 ? "implement" : undefined,
-        acceptance_criteria: task.acceptance_criteria.filter((a) => a.type === "file_exists"), ...perNode,
+        // file checks scoped to this unit: a parallel sibling's files are not this node's responsibility
+        acceptance_criteria: task.acceptance_criteria.filter((a) => a.type === "file_exists" && (units.length === 1 || u.objective.includes(a.path) || (u.context_files ?? []).includes(a.path))), ...perNode,
       }));
     }
 
