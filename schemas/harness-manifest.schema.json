@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HarnessManifest",
+  "type": "object",
+  "required": [
+    "id",
+    "topology",
+    "agents"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "topology": {
+      "enum": [
+        "single",
+        "parallel-synthesize",
+        "builder-reviewer",
+        "supervisor-workers"
+      ]
+    },
+    "agents": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "execution_order": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "max_repair_loops": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2
+    },
+    "memory_policy": {
+      "enum": [
+        "none",
+        "task",
+        "experience-read",
+        "experience-write"
+      ]
+    },
+    "failure_policy": {
+      "type": "object"
+    },
+    "budget": {
+      "type": "object"
+    }
+  }
+}

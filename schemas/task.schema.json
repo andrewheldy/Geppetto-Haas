@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TaskSpec",
+  "type": "object",
+  "required": [
+    "id",
+    "objective"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "objective": {
+      "type": "string"
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "success_criteria": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "budget": {
+      "type": "object",
+      "properties": {
+        "max_usd": {
+          "type": "number"
+        },
+        "max_tokens": {
+          "type": "integer"
+        },
+        "max_seconds": {
+          "type": "integer"
+        }
+      }
+    }
+  }
+}

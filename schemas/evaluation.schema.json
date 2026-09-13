@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EvaluationResult",
+  "type": "object",
+  "required": [
+    "run_id",
+    "scores",
+    "efficiency"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string"
+    },
+    "scores": {
+      "type": "object"
+    },
+    "efficiency": {
+      "type": "object"
+    },
+    "failure_recovery": {
+      "type": "object"
+    },
+    "promotion_candidates": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    }
+  }
+}

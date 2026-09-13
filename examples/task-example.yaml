@@ -1,0 +1,16 @@
+id: research-001
+objective: >
+  Evaluate three approaches to persistent agent memory for a small multi-agent
+  coding harness and recommend the simplest option that supports cross-session recall.
+constraints:
+  - Prefer open standards.
+  - Avoid building a new vector database.
+  - Recommendation must explain tradeoffs.
+success_criteria:
+  - At least three approaches compared.
+  - One recommendation.
+  - Evidence and uncertainty separated.
+budget:
+  max_usd: 1.00
+  max_tokens: 50000
+  max_seconds: 600

@@ -1,0 +1,28 @@
+id: agent-memory-architecture-reviewer
+objective: >
+  Compare the architectural fit and failure modes of persistent memory approaches
+  for this task.
+capabilities:
+  - architecture_comparison
+  - evidence_assessment
+tools:
+  allow:
+    - web.search
+    - github.read
+  deny:
+    - filesystem.write
+    - database.write
+skills:
+  - source-verification
+prompt_modules:
+  - architecture-review
+  - evidence-discipline
+context_scope:
+  - task.constraints
+  - system.runtime_boundary
+model_policy:
+  class: frontier-reasoning
+  effort: medium
+lifecycle: ephemeral
+output_contract:
+  type: comparison_matrix

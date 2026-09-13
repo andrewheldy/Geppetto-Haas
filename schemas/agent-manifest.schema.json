@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AgentManifest",
+  "type": "object",
+  "required": [
+    "id",
+    "objective",
+    "capabilities",
+    "tools",
+    "context_scope",
+    "lifecycle",
+    "output_contract"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "objective": {
+      "type": "string"
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tools": {
+      "type": "object",
+      "properties": {
+        "allow": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "deny": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "prompt_modules": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "context_scope": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "model_policy": {
+      "type": "object",
+      "properties": {
+        "class": {
+          "type": "string"
+        },
+        "effort": {
+          "type": "string"
+        }
+      }
+    },
+    "lifecycle": {
+      "enum": [
+        "ephemeral",
+        "cached-pattern",
+        "registered"
+      ]
+    },
+    "output_contract": {
+      "type": "object"
+    }
+  }
+}
