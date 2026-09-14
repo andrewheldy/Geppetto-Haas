@@ -39,11 +39,13 @@ export async function runExperiment(o: ExperimentOptions): Promise<ExperimentSum
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "task.json"), JSON.stringify(o.task, null, 2));
   const labels = Math.random() < 0.5 ? ["A", "B"] : ["B", "A"];
-  const exp: ExperimentSummary = {
+  const prior: ExperimentSummary | undefined = existsSync(join(dir, "summary.json")) ? JSON.parse(readFileSync(join(dir, "summary.json"), "utf8")) : undefined;
+  const exp: ExperimentSummary = prior ? { ...prior, modes: Object.fromEntries(Object.entries(prior.modes).filter(([m]) => !o.modes.includes(m as ExecutionMode))), comparison: undefined } : {
     experiment_id: id, task_id: o.task.id, objective: o.task.objective, runtime: o.runtime, created_at: new Date().toISOString(),
     governance_note: "Governed mode = full Geppetto (graph, JIT specialists, HSC, governor, compiled L0, retrieval, compaction, isolated review). Control = one accumulating session (bootstrap-style, no governance). The harness itself was built pre-Geppetto (bootstrap); only the task under test is governed.",
     modes: {},
   };
+  for (const m of Object.values(exp.modes)) if (m) m.dir = join(dir, m.summary.mode);
   for (const mode of o.modes) {
     resetAgentSeq();
     const modeDir = join(dir, mode); const ws = prepareWorkspace(o.repo_root, join(modeDir, "workspace"), o.task.workspace_source);

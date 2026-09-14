@@ -117,7 +117,8 @@ export class ClaudeCliRuntime implements RuntimeAdapter {
     let structured = parsed.structured_output as Record<string, unknown> | undefined;
     const text: string = typeof parsed.result === "string" ? parsed.result : JSON.stringify(parsed.result ?? "");
     if (!structured && req.json_schema) { try { structured = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1)); } catch { /* not json */ } }
-    const isErr = parsed.is_error || (parsed.subtype && parsed.subtype !== "success");
+    const limitHit = /you've hit your (session|usage|rate) limit|rate limit exceeded|overloaded_error/i.test(text);
+    const isErr = parsed.is_error || (parsed.subtype && parsed.subtype !== "success") || limitHit;
     return { invocation_id: req.invocation_id, output_text: text, structured, usage, iterations, cost_usd: parsed.total_cost_usd ?? estimateCost(modelUsed, usage), cost_estimated: parsed.total_cost_usd === undefined,
       duration_ms, model: modelUsed, session_id: parsed.session_id, num_turns: parsed.num_turns ?? 0, error: isErr ? `claude ${parsed.subtype}: ${text.slice(0, 500)}` : undefined };
   }
