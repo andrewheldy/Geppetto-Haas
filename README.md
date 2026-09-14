@@ -1,4 +1,7 @@
-# Geppetto — governed agent harness, Experiment 001 rig
+# Geppetto-Haas
+
+Suspend your AI agents inside a task-aware harness that manages context, memory, tools, and state—preserving continuity as work moves across agents and between organizations.
+
 
 Geppetto is a model-agnostic harness that turns an objective into an execution graph, builds ephemeral specialists just in time, compiles a deliberately minimal context packet for each one, keeps canonical state in a structured HSC layer instead of a transcript, and measures every token along the way.
 
