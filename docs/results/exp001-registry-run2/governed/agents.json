@@ -1,0 +1,297 @@
+[
+  {
+    "agent_id": "planning-architect-01",
+    "role": "Planning Architect",
+    "objective": "Produce an implementation plan for: Extend Geppetto with two independent pieces of telemetry tooling. (A) A specialist promotion registry: src/registry.ts exporting a SpecialistRegistry class that ingests one or more run directories (each containing agents.json, ledger.jsonl and trace.jsonl as produced by src/orchestrator.ts), aggregates per-role statistics (number of invocations, node success rate derived from node.completed vs node.failed trace events, mean cost, mean input and output tokens, models used) and suggests promotion candidates (roles with at least 3 invocations and success rate >= 0.8) with a human-readable reason; it must be able to save/load registry.json and must never auto-promote (candidates only). Wire a `registry --runs <dir> [--out registry.json]` command into src/cli.ts that scans every subdirectory containing agents.json and prints a table. (B) A CSV exporter: src/ledger-csv.ts exporting ledgerToCsv(rows: ContextLedgerEntry[]): string that writes a header row from the ContextLedgerEntry keys and escapes commas, quotes and newlines correctly. Both parts need tests in tests/registry.test.ts and tests/ledger-csv.test.ts using node:test, and the whole repo must still typecheck.",
+    "node_id": "plan",
+    "prompt_modules": [
+      "core",
+      "role_plan",
+      "state",
+      "rehydration",
+      "output_json"
+    ],
+    "tools": [
+      "Read",
+      "Glob",
+      "Grep"
+    ],
+    "model": {
+      "model": "opus",
+      "effort": "high",
+      "candidates": [
+        "haiku",
+        "sonnet",
+        "opus"
+      ],
+      "reasons": [
+        "complexity=medium, reasoning=high → strongest tier"
+      ],
+      "attempt": 0
+    },
+    "budget": {
+      "max_usd": 4.17,
+      "max_seconds": 900
+    },
+    "authority": "read",
+    "acceptance_criteria": [],
+    "lifecycle": "ephemeral",
+    "capabilities": {
+      "required_capabilities": [
+        "architecture",
+        "task_decomposition",
+        "typescript"
+      ],
+      "task_complexity": "medium",
+      "reasoning_requirement": "high",
+      "tools": [
+        "Read",
+        "Glob",
+        "Grep"
+      ],
+      "context_scope": [
+        "task",
+        "hsc:constraint+decision+fact",
+        "files:6"
+      ],
+      "needs_independence": false
+    }
+  },
+  {
+    "agent_id": "implementation-engineer-02",
+    "role": "Implementation Engineer",
+    "objective": "Part (A): implement src/registry.ts (SpecialistRegistry: ingest run dirs, per-role stats, promotion candidates, save/load registry.json), add the `registry` command to src/cli.ts, and write tests/registry.test.ts with fixture run directories created in a temp dir.",
+    "node_id": "implement:registry",
+    "prompt_modules": [
+      "core",
+      "role_implement",
+      "state",
+      "rehydration",
+      "output_json"
+    ],
+    "tools": [
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "Bash"
+    ],
+    "model": {
+      "model": "opus",
+      "effort": "high",
+      "candidates": [
+        "haiku",
+        "sonnet",
+        "opus"
+      ],
+      "reasons": [
+        "complexity=high, reasoning=high → strongest tier"
+      ],
+      "attempt": 0
+    },
+    "budget": {
+      "max_usd": 4.17,
+      "max_seconds": 900
+    },
+    "authority": "write+shell",
+    "acceptance_criteria": [
+      {
+        "type": "file_exists",
+        "path": "src/registry.ts"
+      },
+      {
+        "type": "file_exists",
+        "path": "tests/registry.test.ts"
+      }
+    ],
+    "lifecycle": "ephemeral",
+    "capabilities": {
+      "required_capabilities": [
+        "implementation",
+        "test_generation",
+        "typescript"
+      ],
+      "task_complexity": "high",
+      "reasoning_requirement": "high",
+      "tools": [
+        "Read",
+        "Edit",
+        "Write",
+        "Glob",
+        "Grep",
+        "Bash"
+      ],
+      "context_scope": [
+        "task",
+        "hsc:constraint+decision+artifact",
+        "output:plan",
+        "files:5"
+      ],
+      "needs_independence": false
+    }
+  },
+  {
+    "agent_id": "implementation-engineer-03",
+    "role": "Implementation Engineer",
+    "objective": "Part (B): implement src/ledger-csv.ts (ledgerToCsv with correct CSV escaping) and tests/ledger-csv.test.ts. Do not touch src/cli.ts.",
+    "node_id": "implement:ledger-csv",
+    "prompt_modules": [
+      "core",
+      "role_implement",
+      "state",
+      "rehydration",
+      "output_json"
+    ],
+    "tools": [
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "Bash"
+    ],
+    "model": {
+      "model": "opus",
+      "effort": "high",
+      "candidates": [
+        "haiku",
+        "sonnet",
+        "opus"
+      ],
+      "reasons": [
+        "complexity=high, reasoning=high → strongest tier"
+      ],
+      "attempt": 0
+    },
+    "budget": {
+      "max_usd": 4.17,
+      "max_seconds": 900
+    },
+    "authority": "write+shell",
+    "acceptance_criteria": [
+      {
+        "type": "file_exists",
+        "path": "src/ledger-csv.ts"
+      },
+      {
+        "type": "file_exists",
+        "path": "tests/ledger-csv.test.ts"
+      }
+    ],
+    "lifecycle": "ephemeral",
+    "capabilities": {
+      "required_capabilities": [
+        "implementation",
+        "test_generation",
+        "typescript"
+      ],
+      "task_complexity": "high",
+      "reasoning_requirement": "high",
+      "tools": [
+        "Read",
+        "Edit",
+        "Write",
+        "Glob",
+        "Grep",
+        "Bash"
+      ],
+      "context_scope": [
+        "task",
+        "hsc:constraint+decision+artifact",
+        "output:plan",
+        "files:2"
+      ],
+      "needs_independence": false
+    }
+  },
+  {
+    "agent_id": "independent-reviewer-04",
+    "role": "Independent Reviewer",
+    "objective": "Independently review the change against the acceptance criteria and test results",
+    "node_id": "review",
+    "prompt_modules": [
+      "core",
+      "role_review",
+      "state",
+      "rehydration",
+      "output_json"
+    ],
+    "tools": [
+      "Read",
+      "Glob",
+      "Grep"
+    ],
+    "model": {
+      "model": "opus",
+      "effort": "high",
+      "candidates": [
+        "haiku",
+        "sonnet",
+        "opus"
+      ],
+      "reasons": [
+        "complexity=medium, reasoning=high → strongest tier"
+      ],
+      "attempt": 0
+    },
+    "budget": {},
+    "authority": "read",
+    "acceptance_criteria": [
+      {
+        "type": "file_exists",
+        "path": "src/registry.ts"
+      },
+      {
+        "type": "file_exists",
+        "path": "src/ledger-csv.ts"
+      },
+      {
+        "type": "file_exists",
+        "path": "tests/registry.test.ts"
+      },
+      {
+        "type": "file_exists",
+        "path": "tests/ledger-csv.test.ts"
+      },
+      {
+        "type": "file_contains",
+        "path": "src/cli.ts",
+        "pattern": "registry"
+      },
+      {
+        "type": "command",
+        "cmd": "node --test tests/*.test.ts",
+        "description": "all tests pass (existing + new)"
+      },
+      {
+        "type": "command",
+        "cmd": "npx tsc --noEmit -p tsconfig.json",
+        "description": "repo typechecks"
+      }
+    ],
+    "lifecycle": "ephemeral",
+    "capabilities": {
+      "required_capabilities": [
+        "code_review",
+        "adversarial_reasoning",
+        "typescript"
+      ],
+      "task_complexity": "medium",
+      "reasoning_requirement": "high",
+      "tools": [
+        "Read",
+        "Glob",
+        "Grep"
+      ],
+      "context_scope": [
+        "task",
+        "hsc:constraint+decision+assumption",
+        "output:test",
+        "output:implement:registry",
+        "output:implement:ledger-csv"
+      ],
+      "needs_independence": true
+    }
+  }
+]

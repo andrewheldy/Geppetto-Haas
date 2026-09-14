@@ -1,0 +1,64 @@
+{
+  "workflow_id": "exp001-registry-run2-control",
+  "mode": "control",
+  "criteria": [
+    {
+      "criterion": "file exists: src/registry.ts",
+      "passed": true
+    },
+    {
+      "criterion": "file exists: src/ledger-csv.ts",
+      "passed": true
+    },
+    {
+      "criterion": "file exists: tests/registry.test.ts",
+      "passed": true
+    },
+    {
+      "criterion": "file exists: tests/ledger-csv.test.ts",
+      "passed": true
+    },
+    {
+      "criterion": "src/cli.ts matches /registry/",
+      "passed": true
+    },
+    {
+      "criterion": "all tests pass (existing + new)",
+      "passed": true,
+      "detail": "exit 0, pass 44 fail 0"
+    },
+    {
+      "criterion": "repo typechecks",
+      "passed": true,
+      "detail": "exit 0"
+    }
+  ],
+  "criteria_passed": 7,
+  "criteria_total": 7,
+  "tests_passed": 44,
+  "tests_failed": 0,
+  "errors": [],
+  "review_findings": 0,
+  "retries": 0,
+  "blind_review": {
+    "score": 8.5,
+    "findings": [
+      "Both required files (src/registry.ts, src/ledger-csv.ts) and both test files exist; cli.ts is wired with a `registry --runs <dir> [--out registry.json]` subcommand, satisfying the file/pattern acceptance checks.",
+      "registry.ts correctly separates invocation counting (from ledger rows) from node outcome counting (from node.completed/node.failed trace events), matching the spec's success-rate definition; node.started and other event types are correctly ignored.",
+      "Promotion thresholds (>=3 invocations, >=0.8 success rate) are enforced as documented constants and boundary cases (exactly 3/0.8, 2 invocations, 0.75 success) are covered by dedicated tests.",
+      "The registry never mutates agent definitions (read-only fs access via readFileSync only) and there is no auto-promotion API - candidates() only returns suggestions with a human-readable reason string; a test explicitly asserts no `promote` method exists and that agents.json is untouched after ingestion.",
+      "save()/load() round-trip is implemented via toJSON()/fromJSON() and re-derives success_rate/means from the persisted totals rather than persisting derived-only values, which is a sound design for reload correctness; tests verify round-trip equality and correct de-duplication of previously-ingested run ids.",
+      "ledger-csv.ts uses a hand-maintained LEDGER_COLUMNS tuple paired with a compile-time exhaustiveness check (Exclude<keyof ContextLedgerEntry, ...> extends never) so the code fails to typecheck if types.ts's ContextLedgerEntry gains/renames a field without updating the column list - a nice defensive technique.",
+      "CSV escaping follows RFC4180 (quote on comma/quote/CRLF, double inner quotes) and is verified both by direct assertions and by a hand-rolled round-trip parser in tests, including a real ledger.jsonl produced by an actual Orchestrator run.",
+      "Diff is additive-only as required: no changes to orchestrator.ts, ledger.ts, or types.ts; cli.ts changes are minimal (one new option, one new branch, one import, one USAGE line).",
+      "No new runtime dependencies introduced; code relies only on node:fs, node:path built-ins, consistent with the Node 24 built-ins constraint.",
+      "Minor: RunAgent is typed as `Pick<AgentDefinition, ...> & Partial<AgentDefinition>`, which is a slightly redundant/confusing way to express 'these three fields required, rest optional' (Pick's required fields already dominate the intersection) - works but could be clearer, e.g. a dedicated interface.",
+      "Minor: roleByNode mapping is last-write-wins per run when multiple agents share the same node_id (e.g., retries with a different agent), which could misattribute node-level outcomes to the wrong role in that edge case; not covered by a test and not called out as a known limitation in comments.",
+      "Minor: CLI's `registry` command silently defaults --runs to \"runs\" and does not validate that the resolved root exists before calling ingestRoot; behavior for a nonexistent root is handled gracefully via findRunDirs' existsSync guard and is tested, so this is only a documentation nitpick.",
+      "Test suite is large and thorough (unit-level aggregation, trace-derived success rate, boundary conditions, persistence, CLI subprocess invocation, integration with a real Orchestrator run, and negative/edge cases like missing agents.json), which meaningfully exercises the acceptance criteria beyond superficial happy-path checks.",
+      "Cannot execute `node --test` or `tsc --noEmit` in this review to empirically confirm the acceptance commands pass; assessment is based on careful static reading of the diff and cross-referencing with the described existing types/orchestrator behavior, which appears internally consistent."
+    ],
+    "model": "claude-sonnet-5",
+    "label": "A"
+  }
+}

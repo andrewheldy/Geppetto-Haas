@@ -1,0 +1,764 @@
+diff --git a/src/cli.ts b/src/cli.ts
+index d19d5b6..d50eb08 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -8,12 +8,14 @@ import { runControl } from "./control.ts";
+ import { DeterministicPlanner } from "./planner.ts";
+ import { DeterministicRouter, type Tier } from "./router.ts";
+ import { makeRuntime } from "./runtime.ts";
++import { SpecialistRegistry } from "./registry.ts";
+ 
+ const USAGE = `geppetto <command> [options]
+ 
+   run         --task <file> [--mode governed|control] [--runtime mock|claude] [--out runs/...] [--cap haiku|sonnet|opus]
+   experiment  --task <file> [--modes governed,control] [--runtime mock|claude] [--cap tier] [--control-model m] [--blind-model m] [--out runs]
+   report      --dir runs/<experiment-id>
++  registry    --runs <dir> [--out registry.json]   aggregate per-role stats, suggest promotion candidates
+ `;
+ 
+ async function main() {
+@@ -21,7 +23,7 @@ async function main() {
+   const { values: v } = parseArgs({ args: rest, options: {
+     task: { type: "string" }, mode: { type: "string", default: "governed" }, modes: { type: "string", default: "governed,control" },
+     runtime: { type: "string", default: "mock" }, out: { type: "string" }, cap: { type: "string" }, "control-model": { type: "string" },
+-    "blind-model": { type: "string" }, dir: { type: "string" }, id: { type: "string" }, "l0-budget": { type: "string" }, "max-turns": { type: "string" },
++    "blind-model": { type: "string" }, dir: { type: "string" }, runs: { type: "string" }, id: { type: "string" }, "l0-budget": { type: "string" }, "max-turns": { type: "string" },
+   }, allowPositionals: true });
+   const repo = resolve(process.cwd());
+   if (cmd === "run") {
+@@ -46,6 +48,13 @@ async function main() {
+     mkdirSync(resolve(v.dir!), { recursive: true });
+     writeFileSync(join(resolve(v.dir!), "report.md"), md);
+     console.log(md);
++  } else if (cmd === "registry") {
++    const reg = new SpecialistRegistry();
++    const dirs = SpecialistRegistry.findRunDirs(resolve(v.runs ?? "runs"));
++    reg.ingestRuns(dirs);
++    console.log(`scanned ${dirs.length} run director${dirs.length === 1 ? "y" : "ies"}\n`);
++    console.log(reg.table());
++    if (v.out) { reg.save(resolve(v.out)); console.log(`\nregistry: ${resolve(v.out)}`); }
+   } else { console.log(USAGE); process.exit(cmd ? 1 : 0); }
+ }
+ main().catch((e) => { console.error(e); process.exit(1); });
+diff --git a/src/ledger-csv.ts b/src/ledger-csv.ts
+new file mode 100644
+index 0000000..8d2d4b0
+--- /dev/null
++++ b/src/ledger-csv.ts
+@@ -0,0 +1,64 @@
++// CSV export for the context ledger. Zero runtime dependencies; RFC 4180 style quoting.
++import type { ContextLedgerEntry } from "./types.ts";
++
++/**
++ * Ordered column list for the CSV. Order is the declaration order of
++ * `ContextLedgerEntry` so the export stays diff-stable across runs.
++ */
++export const LEDGER_COLUMNS = [
++  "workflow_id",
++  "mode",
++  "node_id",
++  "agent_id",
++  "invocation_id",
++  "model",
++  "phase",
++  "available_context_tokens",
++  "compiled_context_tokens",
++  "hsc_tokens",
++  "retrieved_tokens",
++  "file_tokens",
++  "tool_tokens",
++  "prompt_overhead_tokens",
++  "input_tokens",
++  "output_tokens",
++  "cache_read_tokens",
++  "cache_write_tokens",
++  "active_context_tokens",
++  "compacted_tokens_removed",
++  "discarded_tokens",
++  "retrievals",
++  "compactions",
++  "hsc_delta_tokens",
++  "estimated_cost_usd",
++  "cost_estimated",
++  "tokens_estimated",
++  "duration_ms",
++  "attempt",
++  "ts",
++] as const satisfies readonly (keyof ContextLedgerEntry)[];
++
++export type LedgerColumn = (typeof LEDGER_COLUMNS)[number];
++
++// Compile-time guard: adding a field to ContextLedgerEntry without adding a column
++// makes this assignment fail to typecheck instead of silently dropping data.
++type _Missing = Exclude<keyof ContextLedgerEntry, LedgerColumn>;
++const _check: never = undefined as unknown as _Missing;
++void _check;
++
++/** Serialize one cell: quote iff it contains a delimiter, quote or newline; double embedded quotes. */
++export function csvEscape(v: unknown): string {
++  if (v === null || v === undefined) return "";
++  const s = String(v);
++  if (!/[",\n\r]/.test(s)) return s;
++  return `"${s.replaceAll('"', '""')}"`;
++}
++
++/** Render ledger rows as CSV: one header row plus one row per entry. No trailing newline. */
++export function ledgerToCsv(rows: ContextLedgerEntry[]): string {
++  const lines = [LEDGER_COLUMNS.join(",")];
++  for (const row of rows) {
++    lines.push(LEDGER_COLUMNS.map((c) => csvEscape(row[c])).join(","));
++  }
++  return lines.join("\n");
++}
+diff --git a/src/registry.ts b/src/registry.ts
+new file mode 100644
+index 0000000..cebbbb9
+--- /dev/null
++++ b/src/registry.ts
+@@ -0,0 +1,261 @@
++// Specialist promotion registry. Read-only over run artifacts; suggests candidates, never promotes.
++import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
++import { basename, dirname, join, resolve } from "node:path";
++import type { ContextLedgerEntry, TraceEvent } from "./types.ts";
++
++/** Aggregate statistics for one role across every ingested run. */
++export interface RoleStats {
++  role: string;
++  invocations: number;
++  agents: string[];
++  runs: string[];
++  nodes_completed: number;
++  nodes_failed: number;
++  success_rate: number;
++  total_cost_usd: number;
++  total_input_tokens: number;
++  total_output_tokens: number;
++  mean_cost_usd: number;
++  mean_input_tokens: number;
++  mean_output_tokens: number;
++  models: string[];
++}
++
++/** A suggestion. Nothing in this module ever mutates an agent definition. */
++export interface PromotionCandidate {
++  role: string;
++  status: "candidate";
++  invocations: number;
++  success_rate: number;
++  mean_cost_usd: number;
++  models: string[];
++  reason: string;
++}
++
++export interface RegistryFile {
++  version: 1;
++  generated_at: string;
++  runs: string[];
++  roles: RoleStats[];
++  candidates: PromotionCandidate[];
++}
++
++const SKIP_DIRS = new Set(["node_modules", ".git", "workspace", "invocations"]);
++
++function readJsonl<T>(file: string): T[] {
++  if (!existsSync(file)) return [];
++  let text: string;
++  try { text = readFileSync(file, "utf8"); } catch { return []; }
++  const out: T[] = [];
++  for (const line of text.split("\n")) {
++    const t = line.trim();
++    if (!t) continue;
++    try { out.push(JSON.parse(t) as T); } catch { /* tolerate malformed lines */ }
++  }
++  return out;
++}
++
++function uniqSorted(xs: Iterable<string>): string[] { return [...new Set(xs)].sort(); }
++
++function thousands(n: number): string {
++  return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
++}
++
++function pad(s: string, w: number, right = false): string {
++  return right ? s.padStart(w) : s.padEnd(w);
++}
++
++/** Shape of agents.json as written by the orchestrator (system_prompt is dropped by JSON.stringify). */
++interface AgentRecord { agent_id?: string; role?: string; node_id?: string; model?: { model?: string } }
++
++/**
++ * Aggregates per-role telemetry over one or more run directories
++ * (each containing agents.json, ledger.jsonl and trace.jsonl) and suggests
++ * which roles look stable enough to be registered as reusable specialists.
++ *
++ * Promotion is advisory only: the registry never writes to agents.json.
++ */
++export class SpecialistRegistry {
++  static readonly MIN_INVOCATIONS = 3;
++  static readonly MIN_SUCCESS_RATE = 0.8;
++
++  private stats = new Map<string, RoleStats>();
++  private ingested = new Set<string>();
++
++  /** Every directory at or below `root` that holds an agents.json (control runs have none). */
++  static findRunDirs(root: string): string[] {
++    const out: string[] = [];
++    const walk = (dir: string, depth: number): void => {
++      if (existsSync(join(dir, "agents.json"))) { out.push(dir); return; }
++      if (depth <= 0) return;
++      let entries;
++      try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return; }
++      for (const e of entries) {
++        if (!e.isDirectory() || SKIP_DIRS.has(e.name)) continue;
++        walk(join(dir, e.name), depth - 1);
++      }
++    };
++    if (existsSync(root)) walk(root, 3);
++    return out.sort();
++  }
++
++  ingestRuns(dirs: string[]): void { for (const d of dirs) this.ingestRun(d); }
++
++  /** Reads one run directory. agents.json is required; ledger/trace are tolerated as empty. */
++  ingestRun(dir: string): void {
++    const abs = resolve(dir);
++    const agentsFile = join(abs, "agents.json");
++    if (!existsSync(agentsFile)) throw new Error(`not a run directory (no agents.json): ${abs}`);
++    if (this.ingested.has(abs)) return;
++    this.ingested.add(abs);
++    const run = basename(abs);
++
++    let agents: AgentRecord[] = [];
++    try {
++      const parsed = JSON.parse(readFileSync(agentsFile, "utf8"));
++      if (Array.isArray(parsed)) agents = parsed as AgentRecord[];
++    } catch { /* tolerate malformed agents.json as an empty run */ }
++
++    const roleByAgent = new Map<string, string>();
++    const roleByNode = new Map<string, string>();
++    for (const a of agents) {
++      if (!a || !a.role) continue;
++      if (a.agent_id) roleByAgent.set(a.agent_id, a.role);
++      if (a.node_id) roleByNode.set(a.node_id, a.role);
++      this.bucket(a.role).runs.push(run);
++    }
++
++    // Cost / token / invocation attribution: ledger rows joined by agent_id.
++    for (const row of readJsonl<ContextLedgerEntry>(join(abs, "ledger.jsonl"))) {
++      const role = row && row.agent_id ? roleByAgent.get(row.agent_id) : undefined;
++      if (!role) continue; // deterministic nodes (test runner, human gate) have no role
++      const s = this.bucket(role);
++      s.invocations++;
++      s.agents.push(row.agent_id);
++      s.runs.push(run);
++      s.total_cost_usd += Number(row.estimated_cost_usd) || 0;
++      s.total_input_tokens += Number(row.input_tokens) || 0;
++      s.total_output_tokens += Number(row.output_tokens) || 0;
++      if (row.model && row.model !== "none") s.models.push(row.model);
++    }
++
++    // Success attribution: node.completed / node.failed trace events joined by node_id.
++    for (const ev of readJsonl<TraceEvent>(join(abs, "trace.jsonl"))) {
++      if (!ev || (ev.type !== "node.completed" && ev.type !== "node.failed")) continue;
++      const role = ev.node_id ? roleByNode.get(ev.node_id) : undefined;
++      if (!role) continue;
++      const s = this.bucket(role);
++      if (ev.type === "node.completed") s.nodes_completed++; else s.nodes_failed++;
++    }
++
++    this.finalize();
++  }
++
++  private bucket(role: string): RoleStats {
++    let s = this.stats.get(role);
++    if (!s) {
++      s = {
++        role, invocations: 0, agents: [], runs: [], nodes_completed: 0, nodes_failed: 0, success_rate: 0,
++        total_cost_usd: 0, total_input_tokens: 0, total_output_tokens: 0,
++        mean_cost_usd: 0, mean_input_tokens: 0, mean_output_tokens: 0, models: [],
++      };
++      this.stats.set(role, s);
++    }
++    return s;
++  }
++
++  /** Recomputes derived fields (means, success rate) and normalises the list fields. */
++  private finalize(): void {
++    for (const s of this.stats.values()) {
++      s.agents = uniqSorted(s.agents);
++      s.runs = uniqSorted(s.runs);
++      s.models = uniqSorted(s.models);
++      const nodes = s.nodes_completed + s.nodes_failed;
++      s.success_rate = nodes ? s.nodes_completed / nodes : 0;
++      const n = s.invocations;
++      s.mean_cost_usd = n ? s.total_cost_usd / n : 0;
++      s.mean_input_tokens = n ? s.total_input_tokens / n : 0;
++      s.mean_output_tokens = n ? s.total_output_tokens / n : 0;
++    }
++  }
++
++  /** Per-role statistics, most-invoked first. */
++  roles(): RoleStats[] {
++    return [...this.stats.values()].sort((a, b) => b.invocations - a.invocations || a.role.localeCompare(b.role));
++  }
++
++  /** Suggestion-only promotion candidates. Pure derivation over roles(); mutates nothing. */
++  candidates(): PromotionCandidate[] {
++    return this.roles()
++      .filter((s) => s.invocations >= SpecialistRegistry.MIN_INVOCATIONS && s.success_rate >= SpecialistRegistry.MIN_SUCCESS_RATE)
++      .map((s) => ({
++        role: s.role,
++        status: "candidate" as const,
++        invocations: s.invocations,
++        success_rate: s.success_rate,
++        mean_cost_usd: s.mean_cost_usd,
++        models: s.models,
++        reason: SpecialistRegistry.reasonFor(s),
++      }));
++  }
++
++  static reasonFor(s: RoleStats): string {
++    const pct = Math.round(s.success_rate * 100);
++    const models = s.models.length ? s.models.join("+") : "unknown model";
++    return `${s.role}: ${s.invocations} invocations, ${pct}% node success (${s.nodes_completed}/${s.nodes_completed + s.nodes_failed}), ` +
++      `mean $${s.mean_cost_usd.toFixed(4)} / ${thousands(s.mean_input_tokens)} in / ${thousands(s.mean_output_tokens)} out tokens on ${models} - ` +
++      `suggest registering as a reusable specialist (human approval required).`;
++  }
++
++  /** All run directory names seen so far. */
++  runs(): string[] { return uniqSorted([...this.stats.values()].flatMap((s) => s.runs)); }
++
++  toJSON(): RegistryFile {
++    return { version: 1, generated_at: new Date().toISOString(), runs: this.runs(), roles: this.roles(), candidates: this.candidates() };
++  }
++
++  save(file: string): RegistryFile {
++    const f = this.toJSON();
++    mkdirSync(dirname(resolve(file)), { recursive: true });
++    writeFileSync(resolve(file), JSON.stringify(f, null, 2));
++    return f;
++  }
++
++  static load(file: string): SpecialistRegistry {
++    const reg = new SpecialistRegistry();
++    const parsed = JSON.parse(readFileSync(resolve(file), "utf8")) as Partial<RegistryFile>;
++    for (const r of parsed.roles ?? []) {
++      const s = reg.bucket(r.role);
++      s.invocations = r.invocations ?? 0;
++      s.agents = [...(r.agents ?? [])];
++      s.runs = [...(r.runs ?? [])];
++      s.nodes_completed = r.nodes_completed ?? 0;
++      s.nodes_failed = r.nodes_failed ?? 0;
++      s.total_cost_usd = r.total_cost_usd ?? 0;
++      s.total_input_tokens = r.total_input_tokens ?? 0;
++      s.total_output_tokens = r.total_output_tokens ?? 0;
++      s.models = [...(r.models ?? [])];
++    }
++    reg.finalize();
++    return reg;
++  }
++
++  /** Dependency-free fixed-width table plus the candidate suggestions. */
++  table(): string {
++    const head = ["role", "invocations", "success", "mean $", "mean in", "mean out", "models"];
++    const rows = this.roles().map((s) => [
++      s.role, String(s.invocations), `${Math.round(s.success_rate * 100)}%`, s.mean_cost_usd.toFixed(4),
++      thousands(s.mean_input_tokens), thousands(s.mean_output_tokens), s.models.join("+") || "-",
++    ]);
++    const w = head.map((h, i) => Math.max(h.length, ...rows.map((r) => r[i].length), 0));
++    const line = (cells: string[]) => cells.map((c, i) => pad(c, w[i], i > 0 && i < 6)).join("  ").trimEnd();
++    const out = [line(head), w.map((n) => "-".repeat(n)).join("  ")];
++    for (const r of rows) out.push(line(r));
++    if (!rows.length) out.push("(no roles ingested)");
++    const cands = this.candidates();
++    out.push("", `Promotion candidates (suggestions only, >=${SpecialistRegistry.MIN_INVOCATIONS} invocations and >=${Math.round(SpecialistRegistry.MIN_SUCCESS_RATE * 100)}% success):`);
++    if (!cands.length) out.push("  (none)");
++    for (const c of cands) out.push(`  - ${c.reason}`);
++    return out.join("\n");
++  }
++}
+diff --git a/tests/ledger-csv.test.ts b/tests/ledger-csv.test.ts
+new file mode 100644
+index 0000000..2c0fc66
+--- /dev/null
++++ b/tests/ledger-csv.test.ts
+@@ -0,0 +1,133 @@
++import { test } from "node:test";
++import assert from "node:assert/strict";
++import { LEDGER_COLUMNS, csvEscape, ledgerToCsv } from "../src/ledger-csv.ts";
++import type { ContextLedgerEntry } from "../src/types.ts";
++
++function entry(over: Partial<ContextLedgerEntry> = {}): ContextLedgerEntry {
++  return {
++    workflow_id: "wf-1",
++    mode: "governed",
++    node_id: "n1",
++    agent_id: "a1",
++    invocation_id: "i1",
++    model: "haiku",
++    phase: "implement",
++    available_context_tokens: 1,
++    compiled_context_tokens: 2,
++    hsc_tokens: 3,
++    retrieved_tokens: 4,
++    file_tokens: 5,
++    tool_tokens: 6,
++    prompt_overhead_tokens: 7,
++    input_tokens: 8,
++    output_tokens: 9,
++    cache_read_tokens: 10,
++    cache_write_tokens: 11,
++    active_context_tokens: 12,
++    compacted_tokens_removed: 13,
++    discarded_tokens: 14,
++    retrievals: 15,
++    compactions: 16,
++    hsc_delta_tokens: 17,
++    estimated_cost_usd: 0.0125,
++    cost_estimated: true,
++    tokens_estimated: false,
++    duration_ms: 1234,
++    attempt: 1,
++    ts: "2026-01-01T00:00:00.000Z",
++    ...over,
++  };
++}
++
++test("empty input yields the header row only, with no trailing newline", () => {
++  const csv = ledgerToCsv([]);
++  assert.equal(csv, LEDGER_COLUMNS.join(","));
++  assert.equal(csv.split("\n").length, 1);
++  assert.ok(!csv.endsWith("\n"));
++});
++
++test("header covers every ContextLedgerEntry key exactly once, in declaration order", () => {
++  const keys = Object.keys(entry());
++  assert.deepEqual([...LEDGER_COLUMNS], keys, "column list must match the interface field order");
++  assert.equal(new Set(LEDGER_COLUMNS).size, LEDGER_COLUMNS.length, "no duplicate columns");
++  assert.equal(ledgerToCsv([]).split(",").length, keys.length);
++});
++
++test("values are emitted in column order, one line per row", () => {
++  const csv = ledgerToCsv([entry(), entry({ node_id: "n2", attempt: 2 })]);
++  const lines = csv.split("\n");
++  assert.equal(lines.length, 3);
++  const header = lines[0]!.split(",");
++  const row = lines[1]!.split(",");
++  assert.equal(row[header.indexOf("workflow_id")], "wf-1");
++  assert.equal(row[header.indexOf("node_id")], "n1");
++  assert.equal(row[header.indexOf("model")], "haiku");
++  assert.equal(row[header.indexOf("ts")], "2026-01-01T00:00:00.000Z");
++  assert.equal(lines[2]!.split(",")[header.indexOf("node_id")], "n2");
++  assert.equal(lines[2]!.split(",")[header.indexOf("attempt")], "2");
++});
++
++test("numbers and booleans are unquoted primitives", () => {
++  const csv = ledgerToCsv([entry()]);
++  const header = csv.split("\n")[0]!.split(",");
++  const row = csv.split("\n")[1]!.split(",");
++  assert.equal(row[header.indexOf("estimated_cost_usd")], "0.0125");
++  assert.equal(row[header.indexOf("input_tokens")], "8");
++  assert.equal(row[header.indexOf("cost_estimated")], "true");
++  assert.equal(row[header.indexOf("tokens_estimated")], "false");
++  assert.equal(row[header.indexOf("duration_ms")], "1234");
++});
++
++test("commas, quotes and newlines are escaped per RFC 4180", () => {
++  assert.equal(csvEscape("plain"), "plain");
++  assert.equal(csvEscape("a,b"), '"a,b"');
++  assert.equal(csvEscape('say "hi"'), '"say ""hi"""');
++  assert.equal(csvEscape("line1\nline2"), '"line1\nline2"');
++  assert.equal(csvEscape("line1\r\nline2"), '"line1\r\nline2"');
++  assert.equal(csvEscape('mix, "q"\nend'), '"mix, ""q""\nend"');
++  assert.equal(csvEscape(""), "");
++  assert.equal(csvEscape(undefined), "");
++  assert.equal(csvEscape(null), "");
++  assert.equal(csvEscape(0), "0");
++  assert.equal(csvEscape(false), "false");
++});
++
++test("escaped fields survive a round-trip through a minimal RFC 4180 parser", () => {
++  const nasty = entry({
++    node_id: 'implement,"main"',
++    phase: "multi\nline",
++    agent_id: "carriage\r\nreturn",
++  });
++  const csv = ledgerToCsv([nasty, entry({ node_id: "plain" })]);
++  const records = parseCsv(csv);
++  assert.equal(records.length, 3);
++  const header = records[0]!;
++  const first = records[1]!;
++  assert.equal(first.length, header.length);
++  assert.equal(first[header.indexOf("node_id")], 'implement,"main"');
++  assert.equal(first[header.indexOf("phase")], "multi\nline");
++  assert.equal(first[header.indexOf("agent_id")], "carriage\r\nreturn");
++  assert.equal(records[2]![header.indexOf("node_id")], "plain");
++});
++
++/** Minimal RFC 4180 reader used only to prove the writer is parseable. */
++function parseCsv(text: string): string[][] {
++  const records: string[][] = [];
++  let row: string[] = [];
++  let field = "";
++  let quoted = false;
++  for (let i = 0; i < text.length; i++) {
++    const c = text[i]!;
++    if (quoted) {
++      if (c === '"') {
++        if (text[i + 1] === '"') { field += '"'; i++; } else quoted = false;
++      } else field += c;
++    } else if (c === '"') quoted = true;
++    else if (c === ",") { row.push(field); field = ""; }
++    else if (c === "\n") { row.push(field); records.push(row); row = []; field = ""; }
++    else field += c;
++  }
++  row.push(field);
++  records.push(row);
++  return records;
++}
+diff --git a/tests/registry.test.ts b/tests/registry.test.ts
+new file mode 100644
+index 0000000..961efaa
+--- /dev/null
++++ b/tests/registry.test.ts
+@@ -0,0 +1,240 @@
++import { test } from "node:test";
++import assert from "node:assert/strict";
++import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
++import { join } from "node:path";
++import { SpecialistRegistry } from "../src/registry.ts";
++import { Orchestrator } from "../src/orchestrator.ts";
++import { DeterministicPlanner } from "../src/planner.ts";
++import { DeterministicRouter } from "../src/router.ts";
++import { MockRuntime } from "../src/runtime.ts";
++import { fakeRepo, task, tmp } from "./helpers.ts";
++
++interface FixtureAgent { agent_id: string; role: string; node_id: string; model?: string }
++interface FixtureRow { agent_id: string; node_id: string; model?: string; cost?: number; in?: number; out?: number }
++
++/** Writes a minimal but format-faithful run directory. */
++function runDir(root: string, name: string, opts: {
++  agents: FixtureAgent[]; ledger?: FixtureRow[]; nodes?: Array<{ node_id: string; ok: boolean }>;
++}): string {
++  const dir = join(root, name);
++  mkdirSync(dir, { recursive: true });
++  writeFileSync(join(dir, "agents.json"), JSON.stringify(opts.agents.map((a) => ({
++    agent_id: a.agent_id, role: a.role, node_id: a.node_id, objective: "o", prompt_modules: ["core"],
++    tools: ["Read"], model: { model: a.model ?? "haiku", effort: "low", candidates: [], reasons: [], attempt: 1 },
++    budget: {}, authority: "read", acceptance_criteria: [], lifecycle: "ephemeral",
++  })), null, 2));
++  const ledger = (opts.ledger ?? []).map((r) => JSON.stringify({
++    workflow_id: name, mode: "governed", node_id: r.node_id, agent_id: r.agent_id, invocation_id: `${r.agent_id}-i`,
++    model: r.model ?? "haiku", phase: "implement", available_context_tokens: 1000, compiled_context_tokens: 100,
++    hsc_tokens: 0, retrieved_tokens: 0, file_tokens: 0, tool_tokens: 0, prompt_overhead_tokens: 0,
++    input_tokens: r.in ?? 1000, output_tokens: r.out ?? 200, cache_read_tokens: 0, cache_write_tokens: 0,
++    active_context_tokens: 1000, compacted_tokens_removed: 0, discarded_tokens: 0, retrievals: 0, compactions: 0,
++    hsc_delta_tokens: 0, estimated_cost_usd: r.cost ?? 0.01, cost_estimated: true, tokens_estimated: false,
++    duration_ms: 5, attempt: 1, ts: new Date().toISOString(),
++  })).join("\n");
++  writeFileSync(join(dir, "ledger.jsonl"), ledger ? ledger + "\n" : "");
++  const trace = (opts.nodes ?? []).map((n, i) => JSON.stringify({
++    ts: new Date().toISOString(), seq: i, type: n.ok ? "node.completed" : "node.failed",
++    workflow_id: name, mode: "governed", node_id: n.node_id, data: {},
++  })).join("\n");
++  writeFileSync(join(dir, "trace.jsonl"), trace ? trace + "\n" : "");
++  return dir;
++}
++
++/** Two runs: Planning Architect is promotable (4 invocations, 4/4), Fix Engineer is not (2 invocations). */
++function twoRuns(): string {
++  const root = tmp();
++  runDir(root, "run-a", {
++    agents: [
++      { agent_id: "planning-architect-01", role: "Planning Architect", node_id: "plan" },
++      { agent_id: "fix-engineer-01", role: "Fix Engineer", node_id: "patch" },
++    ],
++    ledger: [
++      { agent_id: "planning-architect-01", node_id: "plan", cost: 0.01, in: 1000, out: 200 },
++      { agent_id: "planning-architect-01", node_id: "plan", cost: 0.02, in: 1400, out: 400 },
++      { agent_id: "fix-engineer-01", node_id: "patch", cost: 0.05, in: 2000, out: 500 },
++      { agent_id: "test-runner", node_id: "test", model: "none", cost: 0, in: 0, out: 0 },
++    ],
++    nodes: [{ node_id: "plan", ok: true }, { node_id: "patch", ok: true }, { node_id: "test", ok: true }],
++  });
++  runDir(root, "run-b", {
++    agents: [
++      { agent_id: "planning-architect-02", role: "Planning Architect", node_id: "plan", model: "sonnet" },
++      { agent_id: "fix-engineer-02", role: "Fix Engineer", node_id: "patch" },
++    ],
++    ledger: [
++      { agent_id: "planning-architect-02", node_id: "plan", model: "sonnet", cost: 0.03, in: 1000, out: 200 },
++      { agent_id: "planning-architect-02", node_id: "plan", model: "sonnet", cost: 0.02, in: 1400, out: 400 },
++      { agent_id: "fix-engineer-02", node_id: "patch", cost: 0.05, in: 2000, out: 500 },
++    ],
++    nodes: [{ node_id: "plan", ok: true }, { node_id: "plan", ok: true }, { node_id: "patch", ok: false }],
++  });
++  return root;
++}
++
++test("aggregates per-role stats across runs and ignores roleless deterministic rows", () => {
++  const root = twoRuns();
++  const reg = new SpecialistRegistry();
++  reg.ingestRuns(SpecialistRegistry.findRunDirs(root));
++  const plan = reg.roles().find((r) => r.role === "Planning Architect")!;
++  assert.equal(plan.invocations, 4);
++  assert.deepEqual(plan.agents, ["planning-architect-01", "planning-architect-02"]);
++  assert.deepEqual(plan.runs, ["run-a", "run-b"]);
++  assert.deepEqual(plan.models, ["haiku", "sonnet"]);
++  assert.equal(plan.nodes_completed, 3);
++  assert.equal(plan.nodes_failed, 0);
++  assert.equal(plan.success_rate, 1);
++  assert.ok(Math.abs(plan.total_cost_usd - 0.08) < 1e-9);
++  assert.ok(Math.abs(plan.mean_cost_usd - 0.02) < 1e-9);
++  assert.equal(plan.mean_input_tokens, 1200);
++  assert.equal(plan.mean_output_tokens, 300);
++  assert.ok(!reg.roles().some((r) => r.agents.includes("test-runner")), "deterministic rows carry no role");
++  assert.deepEqual(reg.runs(), ["run-a", "run-b"]);
++});
++
++test("success rate comes from node.completed vs node.failed", () => {
++  const root = twoRuns();
++  const reg = new SpecialistRegistry();
++  reg.ingestRuns(SpecialistRegistry.findRunDirs(root));
++  const fix = reg.roles().find((r) => r.role === "Fix Engineer")!;
++  assert.equal(fix.nodes_completed, 1);
++  assert.equal(fix.nodes_failed, 1);
++  assert.equal(fix.success_rate, 0.5);
++});
++
++test("candidates need >=3 invocations and >=0.8 success, and are suggestions only", () => {
++  const root = twoRuns();
++  const reg = new SpecialistRegistry();
++  reg.ingestRuns(SpecialistRegistry.findRunDirs(root));
++  const cands = reg.candidates();
++  assert.deepEqual(cands.map((c) => c.role), ["Planning Architect"]);
++  assert.equal(cands[0].status, "candidate");
++  assert.equal(cands[0].invocations, 4);
++  assert.match(cands[0].reason, /Planning Architect: 4 invocations, 100% node success \(3\/3\)/);
++  assert.match(cands[0].reason, /mean \$0\.0200 \/ 1,200 in \/ 300 out tokens on haiku\+sonnet/);
++  assert.match(cands[0].reason, /human approval required/);
++  assert.equal(SpecialistRegistry.MIN_INVOCATIONS, 3);
++  assert.equal(SpecialistRegistry.MIN_SUCCESS_RATE, 0.8);
++});
++
++test("2 invocations is not a candidate even at 100% success", () => {
++  const root = tmp();
++  runDir(root, "r", {
++    agents: [{ agent_id: "a1", role: "Researcher", node_id: "research" }],
++    ledger: [{ agent_id: "a1", node_id: "research" }, { agent_id: "a1", node_id: "research" }],
++    nodes: [{ node_id: "research", ok: true }, { node_id: "research", ok: true }],
++  });
++  const reg = new SpecialistRegistry();
++  reg.ingestRun(join(root, "r"));
++  assert.equal(reg.roles()[0].success_rate, 1);
++  assert.deepEqual(reg.candidates(), []);
++});
++
++test("0.5 success is not a candidate even with many invocations", () => {
++  const root = tmp();
++  runDir(root, "r", {
++    agents: [{ agent_id: "a1", role: "Fix Engineer", node_id: "patch" }],
++    ledger: [1, 2, 3, 4].map(() => ({ agent_id: "a1", node_id: "patch" })),
++    nodes: [{ node_id: "patch", ok: true }, { node_id: "patch", ok: false }],
++  });
++  const reg = new SpecialistRegistry();
++  reg.ingestRun(join(root, "r"));
++  assert.equal(reg.roles()[0].invocations, 4);
++  assert.deepEqual(reg.candidates(), []);
++});
++
++test("save/load round-trips losslessly and keeps accumulating", () => {
++  const root = twoRuns();
++  const reg = new SpecialistRegistry();
++  reg.ingestRun(join(root, "run-a"));
++  const file = join(tmp(), "nested", "registry.json");
++  const saved = reg.save(file);
++  const loaded = SpecialistRegistry.load(file);
++  assert.deepEqual(loaded.roles(), reg.roles());
++  assert.deepEqual(loaded.candidates(), reg.candidates());
++  assert.deepEqual(JSON.parse(readFileSync(file, "utf8")).roles, saved.roles);
++
++  loaded.ingestRun(join(root, "run-b"));
++  const full = new SpecialistRegistry();
++  full.ingestRuns([join(root, "run-a"), join(root, "run-b")]);
++  assert.deepEqual(loaded.roles(), full.roles());
++});
++
++test("ingesting the same run twice does not double-count", () => {
++  const root = twoRuns();
++  const reg = new SpecialistRegistry();
++  reg.ingestRun(join(root, "run-a"));
++  reg.ingestRun(join(root, "run-a"));
++  assert.equal(reg.roles().find((r) => r.role === "Planning Architect")!.invocations, 2);
++});
++
++test("registry never mutates run artifacts", () => {
++  const root = twoRuns();
++  const agentsFile = join(root, "run-a", "agents.json");
++  const before = readFileSync(agentsFile);
++  const reg = new SpecialistRegistry();
++  reg.ingestRuns(SpecialistRegistry.findRunDirs(root));
++  reg.candidates();
++  reg.table();
++  assert.deepEqual(readFileSync(agentsFile), before, "agents.json byte-identical after ingest");
++});
++
++test("findRunDirs skips non-run directories and recurses into experiment layouts", () => {
++  const root = tmp();
++  mkdirSync(join(root, "exp1"), { recursive: true });
++  runDir(join(root, "exp1"), "governed", { agents: [{ agent_id: "a1", role: "Specialist", node_id: "n1" }] });
++  mkdirSync(join(root, "exp1", "control"), { recursive: true });        // control run: no agents.json
++  writeFileSync(join(root, "exp1", "control", "summary.json"), "{}");
++  mkdirSync(join(root, "exp1", "governed", "workspace"), { recursive: true });
++  writeFileSync(join(root, "exp1", "governed", "workspace", "agents.json"), "[]"); // must be skipped
++  const found = SpecialistRegistry.findRunDirs(root);
++  assert.deepEqual(found, [join(root, "exp1", "governed")]);
++  assert.deepEqual(SpecialistRegistry.findRunDirs(join(root, "nope")), []);
++});
++
++test("ingestRun rejects a directory without agents.json; malformed jsonl is tolerated", () => {
++  const root = tmp();
++  assert.throws(() => new SpecialistRegistry().ingestRun(root), /no agents\.json/);
++  const dir = join(root, "broken");
++  mkdirSync(dir, { recursive: true });
++  writeFileSync(join(dir, "agents.json"), JSON.stringify([{ agent_id: "a1", role: "Specialist", node_id: "n1" }]));
++  writeFileSync(join(dir, "ledger.jsonl"), "{not json}\n\n");
++  const reg = new SpecialistRegistry();
++  reg.ingestRun(dir); // no trace.jsonl at all
++  assert.equal(reg.roles()[0].invocations, 0);
++  assert.equal(reg.roles()[0].mean_cost_usd, 0);
++  assert.equal(reg.roles()[0].success_rate, 0);
++});
++
++test("table renders roles and a candidate section", () => {
++  const root = twoRuns();
++  const reg = new SpecialistRegistry();
++  reg.ingestRuns(SpecialistRegistry.findRunDirs(root));
++  const t = reg.table();
++  assert.match(t, /role\s+invocations\s+success/);
++  assert.match(t, /Planning Architect\s+4\s+100%/);
++  assert.match(t, /Promotion candidates \(suggestions only/);
++  assert.match(t, /- Planning Architect: 4 invocations/);
++  assert.match(new SpecialistRegistry().table(), /\(no roles ingested\)[\s\S]*\(none\)/);
++});
++
++test("ingests a real orchestrator run directory", async () => {
++  const out = tmp();
++  const runtime = new MockRuntime({ write_on_implement: { "src/widget.ts": "export const w = 1;" } });
++  await new Orchestrator({
++    task: task(), workflow_id: "w", runtime, planner: new DeterministicPlanner(),
++    router: new DeterministicRouter(), workspace: fakeRepo(), out_dir: out,
++  }).run();
++  const reg = new SpecialistRegistry();
++  assert.deepEqual(SpecialistRegistry.findRunDirs(out), [out]);
++  reg.ingestRun(out);
++  const roles = reg.roles();
++  assert.deepEqual(roles.map((r) => r.role).sort(), ["Implementation Engineer", "Independent Reviewer", "Planning Architect"]);
++  assert.equal(roles.reduce((a, r) => a + r.invocations, 0), 3, "3 agent invocations, test runner excluded");
++  for (const r of roles) {
++    assert.equal(r.success_rate, 1);
++    assert.ok(r.mean_input_tokens > 0 && r.mean_output_tokens > 0);
++    assert.ok(r.models.length && !r.models.includes("none"));
++  }
++  assert.deepEqual(reg.candidates(), [], "one invocation per role is below the promotion threshold");
++});

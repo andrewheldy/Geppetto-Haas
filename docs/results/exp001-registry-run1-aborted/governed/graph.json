@@ -1,0 +1,441 @@
+{
+  "graph_id": "g-exp001-registry-run1-governed",
+  "workflow_id": "exp001-registry-run1-governed",
+  "version": 1,
+  "nodes": [
+    {
+      "dependencies": [],
+      "required_capabilities": [
+        "architecture",
+        "typescript",
+        "task_decomposition"
+      ],
+      "required_context": [
+        {
+          "kind": "task"
+        },
+        {
+          "kind": "hsc",
+          "kinds": [
+            "constraint",
+            "decision",
+            "fact"
+          ]
+        },
+        {
+          "kind": "files",
+          "paths": [
+            "src/types.ts",
+            "src/ledger.ts",
+            "src/cli.ts",
+            "src/trace.ts",
+            "package.json",
+            "tsconfig.json"
+          ],
+          "max_tokens": 8000
+        }
+      ],
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Grep"
+      ],
+      "acceptance_criteria": [],
+      "budget": {
+        "max_usd": 4.17,
+        "max_seconds": 900
+      },
+      "status": "succeeded",
+      "inputs": {},
+      "state_changes": [
+        "s14",
+        "s15",
+        "s16",
+        "s17",
+        "s18",
+        "s19",
+        "s20",
+        "s21",
+        "s22",
+        "s23",
+        "s24",
+        "s25",
+        "s26",
+        "s27",
+        "s28",
+        "s29",
+        "s30"
+      ],
+      "retry_policy": {
+        "max_retries": 1,
+        "on_exhausted": "replan"
+      },
+      "complexity": "medium",
+      "reasoning": "high",
+      "attempts": 1,
+      "iteration": 1,
+      "node_id": "plan",
+      "objective": "Produce an implementation plan for: Extend Geppetto with two independent pieces of telemetry tooling. (A) A specialist promotion registry: src/registry.ts exporting a SpecialistRegistry class that ingests one or more run directories (each containing agents.json, ledger.jsonl and trace.jsonl as produced by src/orchestrator.ts), aggregates per-role statistics (number of invocations, node success rate derived from node.completed vs node.failed trace events, mean cost, mean input and output tokens, models used) and suggests promotion candidates (roles with at least 3 invocations and success rate >= 0.8) with a human-readable reason; it must be able to save/load registry.json and must never auto-promote (candidates only). Wire a `registry --runs <dir> [--out registry.json]` command into src/cli.ts that scans every subdirectory containing agents.json and prints a table. (B) A CSV exporter: src/ledger-csv.ts exporting ledgerToCsv(rows: ContextLedgerEntry[]): string that writes a header row from the ContextLedgerEntry keys and escapes commas, quotes and newlines correctly. Both parts need tests in tests/registry.test.ts and tests/ledger-csv.test.ts using node:test, and the whole repo must still typecheck.",
+      "node_type": "plan",
+      "execution_order": 1,
+      "assigned_agent": "planning-architect-01",
+      "outputs": {
+        "text": "{\"summary\":\"Read types.ts, ledger.ts, orchestrator.ts, report.ts, cli.ts and the existing tests to pin down the exact on-disk shapes (agents.json = AgentDefinition[] minus system_prompt with role+node_id; ledger.jsonl = ContextLedgerEntry rows keyed by agent_id; trace.jsonl = TraceEvent with node.completed/node.failed and node_id). Produced an implementation plan: two new read-only modules (src/registry.ts with a SpecialistRegistry class, src/ledger-csv.ts with ledgerToCsv/csvEscape/LEDGER_COLUMNS), an additive `registry --runs <dir> [--out registry.json]` branch plus a `runs` parseArgs option in src/cli.ts, and two node:test suites. No files were modified (read-only authority). Aggregation keeps raw totals so save/load/re-ingest is lossless and idempotent; candidates are suggestions only and agent definitions are never touched.\",\"verdict\":\"n/a\",\"findings\":[\"agents.json is written by orchestrator.ts:115 as the agent list with system_prompt dropped; each entry carries agent_id, role, node_id, model.model — this is the only place role lives, so role mapping must come from agents.json (agent_id -> role, role -> node_ids).\",\"Retries create a new agent per attempt (factory.ts increments agentSeq), so one role can have several agent_ids for the same node_id; invocation counts must be per ledger row, not per unique agent.\",\"Deterministic nodes (test runner) record ledger rows with agent_id 'test-runner' and model 'none' and have no agents.json entry; control mode uses agent_id 'monolith' and writes no agents.json at all.\",\"Success/failure signal: tracer.emit('node.completed', {verdict, attempts}) at orchestrator.ts:135 and ('node.failed', {error, attempt}) at :140, both carrying node_id only (no agent_id), so success rate must be joined via role -> node_id sets.\",\"ContextLedgerEntry has 30 fields (types.ts:297-328) including 3 booleans and 2 strings that can contain arbitrary text (phase, node_id), which is why CSV escaping matters.\",\"tsconfig enables erasableSyntaxOnly + verbatimModuleSyntax + allowImportingTsExtensions, so new code must use `import type`, .ts import specifiers, and no parameter properties/enums.\",\"cli.ts already has an `out` option and a single parseArgs options object; only a `runs` key plus one else-if branch and an existsSync import are needed.\"],\"decisions\":[\"src/registry.ts exports SpecialistRegistry with ingestRun/ingestRuns/roles/candidates/toJSON/save/table, static load(file) and static discoverRuns(root); all I/O is read-only except save().\",\"RoleStats persists raw totals (total_cost_usd, total_input_tokens, total_output_tokens, nodes_completed, nodes_failed) alongside the derived means so save -> load -> ingest-more stays lossless and additive.\",\"Run dirs are deduped by resolved absolute path and recorded in RegistryFile.runs; re-ingesting an already-seen dir is a no-op returning false.\",\"Thresholds exported as MIN_INVOCATIONS = 3 and MIN_SUCCESS_RATE = 0.8; candidates() returns suggestions with a human-readable reason and explicitly states review is required; nothing mutates agents.json.\",\"Ledger rows whose agent_id is absent from agents.json (test-runner, monolith) are excluded from role stats rather than inventing synthetic roles.\",\"src/ledger-csv.ts uses a static LEDGER_COLUMNS tuple (`as const satisfies readonly (keyof ContextLedgerEntry)[]`) plus a type-level Exclude guard so tsc fails if ContextLedgerEntry gains a field; rows are \\\\n-terminated with a trailing newline, RFC4180 quoting (quote when , \\\" \\\\n or \\\\r present, \\\" doubled).\",\"CLI writes registry.json only when --out is passed (loading it first if it already exists); without --out it just prints the table, avoiding surprise writes.\",\"Tests use local fixture builders inside tests/registry.test.ts (reusing only tmp()/fakeRepo()/task() from tests/helpers.ts) so helpers.ts is not modified, plus one MockRuntime+Orchestrator integration test to catch field-name drift.\"],\"assumptions\":[\"node.completed events whose data.verdict === 'fail' count as node successes (the node executed); the spec's wording is 'node.completed vs node.failed trace events'. If the intent is verdict-aware scoring this needs a follow-up.\",\"Success rate is per trace event, so a retried node contributes one failure and one completion (rate 0.5 for that node).\",\"discoverRuns walks recursively with a depth cap (4) and skips .git, node_modules, dot-dirs and 'workspace' subtrees; runs/<exp>/<mode>/agents.json is the expected layout.\",\"ledger.jsonl / trace.jsonl may be missing or truncated in a run dir; ingestion treats them as empty rather than throwing (only agents.json is required).\",\"No test currently depends on cli.ts behaviour, so adding the branch cannot break existing tests.\"],\"questions\":[\"Should a review node that completes with verdict 'fail' count against the role's success rate, or only node.failed events (current plan: only node.failed)?\",\"Should `registry --runs` default to writing runs/registry.json when --out is omitted, or stay print-only as planned?\",\"Should deterministic rows (agent_id 'test-runner', model 'none') be surfaced as a pseudo-role in the table, or remain excluded?\"],\"files_changed\":[],\"need_context\":[]}",
+        "summary": "Read types.ts, ledger.ts, orchestrator.ts, report.ts, cli.ts and the existing tests to pin down the exact on-disk shapes (agents.json = AgentDefinition[] minus system_prompt with role+node_id; ledger.jsonl = ContextLedgerEntry rows keyed by agent_id; trace.jsonl = TraceEvent with node.completed/node.failed and node_id). Produced an implementation plan: two new read-only modules (src/registry.ts with a SpecialistRegistry class, src/ledger-csv.ts with ledgerToCsv/csvEscape/LEDGER_COLUMNS), an additive `registry --runs <dir> [--out registry.json]` branch plus a `runs` parseArgs option in src/cli.ts, and two node:test suites. No files were modified (read-only authority). Aggregation keeps raw totals so save/load/re-ingest is lossless and idempotent; candidates are suggestions only and agent definitions are never touched.\nFindings:\n- agents.json is written by orchestrator.ts:115 as the agent list with system_prompt dropped; each entry carries agent_id, role, node_id, model.model — this is the only place role lives, so role mapping must come from agents.json (agent_id -> role, role -> node_ids).\n- Retries create a new agent per attempt (factory.ts increments agentSeq), so one role can have several agent_ids for the same node_id; invocation counts must be per ledger row, not per unique agent.\n- Deterministic nodes (test runner) record ledger rows with agent_id 'test-runner' and model 'none' and have no agents.json entry; control mode uses agent_id 'monolith' and writes no agents.json at all.\n- Success/failure signal: tracer.emit('node.completed', {verdict, attempts}) at orchestrator.ts:135 and ('node.failed', {error, attempt}) at :140, both carrying node_id only (no agent_id), so success rate must be joined via role -> node_id sets.\n- ContextLedgerEntry has 30 fields (types.ts:297-328) including 3 booleans and 2 strings that can contain arbitrary text (phase, node_id), which is why CSV escaping matters.\n- tsconfig enables erasableSyntaxOnly + verbatimModuleSyntax + allowImportingTsExtensions, so new code must use `import type`, .ts import specifiers, and no parameter properties/enums.\n- cli.ts already has an `out` option and a single parseArgs options object; only a `runs` key plus one else-if branch and an existsSync import are needed.",
+        "structured": {
+          "summary": "Read types.ts, ledger.ts, orchestrator.ts, report.ts, cli.ts and the existing tests to pin down the exact on-disk shapes (agents.json = AgentDefinition[] minus system_prompt with role+node_id; ledger.jsonl = ContextLedgerEntry rows keyed by agent_id; trace.jsonl = TraceEvent with node.completed/node.failed and node_id). Produced an implementation plan: two new read-only modules (src/registry.ts with a SpecialistRegistry class, src/ledger-csv.ts with ledgerToCsv/csvEscape/LEDGER_COLUMNS), an additive `registry --runs <dir> [--out registry.json]` branch plus a `runs` parseArgs option in src/cli.ts, and two node:test suites. No files were modified (read-only authority). Aggregation keeps raw totals so save/load/re-ingest is lossless and idempotent; candidates are suggestions only and agent definitions are never touched.",
+          "verdict": "n/a",
+          "findings": [
+            "agents.json is written by orchestrator.ts:115 as the agent list with system_prompt dropped; each entry carries agent_id, role, node_id, model.model — this is the only place role lives, so role mapping must come from agents.json (agent_id -> role, role -> node_ids).",
+            "Retries create a new agent per attempt (factory.ts increments agentSeq), so one role can have several agent_ids for the same node_id; invocation counts must be per ledger row, not per unique agent.",
+            "Deterministic nodes (test runner) record ledger rows with agent_id 'test-runner' and model 'none' and have no agents.json entry; control mode uses agent_id 'monolith' and writes no agents.json at all.",
+            "Success/failure signal: tracer.emit('node.completed', {verdict, attempts}) at orchestrator.ts:135 and ('node.failed', {error, attempt}) at :140, both carrying node_id only (no agent_id), so success rate must be joined via role -> node_id sets.",
+            "ContextLedgerEntry has 30 fields (types.ts:297-328) including 3 booleans and 2 strings that can contain arbitrary text (phase, node_id), which is why CSV escaping matters.",
+            "tsconfig enables erasableSyntaxOnly + verbatimModuleSyntax + allowImportingTsExtensions, so new code must use `import type`, .ts import specifiers, and no parameter properties/enums.",
+            "cli.ts already has an `out` option and a single parseArgs options object; only a `runs` key plus one else-if branch and an existsSync import are needed."
+          ],
+          "decisions": [
+            "src/registry.ts exports SpecialistRegistry with ingestRun/ingestRuns/roles/candidates/toJSON/save/table, static load(file) and static discoverRuns(root); all I/O is read-only except save().",
+            "RoleStats persists raw totals (total_cost_usd, total_input_tokens, total_output_tokens, nodes_completed, nodes_failed) alongside the derived means so save -> load -> ingest-more stays lossless and additive.",
+            "Run dirs are deduped by resolved absolute path and recorded in RegistryFile.runs; re-ingesting an already-seen dir is a no-op returning false.",
+            "Thresholds exported as MIN_INVOCATIONS = 3 and MIN_SUCCESS_RATE = 0.8; candidates() returns suggestions with a human-readable reason and explicitly states review is required; nothing mutates agents.json.",
+            "Ledger rows whose agent_id is absent from agents.json (test-runner, monolith) are excluded from role stats rather than inventing synthetic roles.",
+            "src/ledger-csv.ts uses a static LEDGER_COLUMNS tuple (`as const satisfies readonly (keyof ContextLedgerEntry)[]`) plus a type-level Exclude guard so tsc fails if ContextLedgerEntry gains a field; rows are \\n-terminated with a trailing newline, RFC4180 quoting (quote when , \" \\n or \\r present, \" doubled).",
+            "CLI writes registry.json only when --out is passed (loading it first if it already exists); without --out it just prints the table, avoiding surprise writes.",
+            "Tests use local fixture builders inside tests/registry.test.ts (reusing only tmp()/fakeRepo()/task() from tests/helpers.ts) so helpers.ts is not modified, plus one MockRuntime+Orchestrator integration test to catch field-name drift."
+          ],
+          "assumptions": [
+            "node.completed events whose data.verdict === 'fail' count as node successes (the node executed); the spec's wording is 'node.completed vs node.failed trace events'. If the intent is verdict-aware scoring this needs a follow-up.",
+            "Success rate is per trace event, so a retried node contributes one failure and one completion (rate 0.5 for that node).",
+            "discoverRuns walks recursively with a depth cap (4) and skips .git, node_modules, dot-dirs and 'workspace' subtrees; runs/<exp>/<mode>/agents.json is the expected layout.",
+            "ledger.jsonl / trace.jsonl may be missing or truncated in a run dir; ingestion treats them as empty rather than throwing (only agents.json is required).",
+            "No test currently depends on cli.ts behaviour, so adding the branch cannot break existing tests."
+          ],
+          "questions": [
+            "Should a review node that completes with verdict 'fail' count against the role's success rate, or only node.failed events (current plan: only node.failed)?",
+            "Should `registry --runs` default to writing runs/registry.json when --out is omitted, or stay print-only as planned?",
+            "Should deterministic rows (agent_id 'test-runner', model 'none') be surfaced as a pseudo-role in the table, or remain excluded?"
+          ],
+          "files_changed": [],
+          "need_context": []
+        },
+        "history_ref": "h1",
+        "files_changed": []
+      }
+    },
+    {
+      "dependencies": [
+        "plan"
+      ],
+      "required_capabilities": [
+        "typescript",
+        "implementation",
+        "test_generation"
+      ],
+      "required_context": [
+        {
+          "kind": "task"
+        },
+        {
+          "kind": "hsc",
+          "kinds": [
+            "constraint",
+            "decision",
+            "artifact"
+          ]
+        },
+        {
+          "kind": "node_output",
+          "node_id": "plan"
+        },
+        {
+          "kind": "files",
+          "paths": [
+            "src/types.ts",
+            "src/ledger.ts",
+            "src/trace.ts",
+            "src/cli.ts",
+            "src/factory.ts"
+          ],
+          "max_tokens": 8000
+        }
+      ],
+      "allowed_tools": [
+        "Read",
+        "Edit",
+        "Write",
+        "Glob",
+        "Grep",
+        "Bash"
+      ],
+      "acceptance_criteria": [
+        {
+          "type": "file_exists",
+          "path": "src/registry.ts"
+        },
+        {
+          "type": "file_exists",
+          "path": "src/ledger-csv.ts"
+        },
+        {
+          "type": "file_exists",
+          "path": "tests/registry.test.ts"
+        },
+        {
+          "type": "file_exists",
+          "path": "tests/ledger-csv.test.ts"
+        }
+      ],
+      "budget": {
+        "max_usd": 4.17,
+        "max_seconds": 900
+      },
+      "status": "pending",
+      "inputs": {},
+      "state_changes": [],
+      "retry_policy": {
+        "max_retries": 1,
+        "on_exhausted": "replan"
+      },
+      "complexity": "high",
+      "reasoning": "high",
+      "attempts": 0,
+      "iteration": 1,
+      "node_id": "implement:registry",
+      "objective": "Part (A): implement src/registry.ts (SpecialistRegistry: ingest run dirs, per-role stats, promotion candidates, save/load registry.json), add the `registry` command to src/cli.ts, and write tests/registry.test.ts with fixture run directories created in a temp dir.",
+      "node_type": "implement",
+      "parallel_group": "implement"
+    },
+    {
+      "dependencies": [
+        "plan"
+      ],
+      "required_capabilities": [
+        "typescript",
+        "implementation",
+        "test_generation"
+      ],
+      "required_context": [
+        {
+          "kind": "task"
+        },
+        {
+          "kind": "hsc",
+          "kinds": [
+            "constraint",
+            "decision",
+            "artifact"
+          ]
+        },
+        {
+          "kind": "node_output",
+          "node_id": "plan"
+        },
+        {
+          "kind": "files",
+          "paths": [
+            "src/types.ts",
+            "src/ledger.ts"
+          ],
+          "max_tokens": 8000
+        }
+      ],
+      "allowed_tools": [
+        "Read",
+        "Edit",
+        "Write",
+        "Glob",
+        "Grep",
+        "Bash"
+      ],
+      "acceptance_criteria": [
+        {
+          "type": "file_exists",
+          "path": "src/registry.ts"
+        },
+        {
+          "type": "file_exists",
+          "path": "src/ledger-csv.ts"
+        },
+        {
+          "type": "file_exists",
+          "path": "tests/registry.test.ts"
+        },
+        {
+          "type": "file_exists",
+          "path": "tests/ledger-csv.test.ts"
+        }
+      ],
+      "budget": {
+        "max_usd": 4.17,
+        "max_seconds": 900
+      },
+      "status": "pending",
+      "inputs": {},
+      "state_changes": [],
+      "retry_policy": {
+        "max_retries": 1,
+        "on_exhausted": "replan"
+      },
+      "complexity": "high",
+      "reasoning": "high",
+      "attempts": 0,
+      "iteration": 1,
+      "node_id": "implement:ledger-csv",
+      "objective": "Part (B): implement src/ledger-csv.ts (ledgerToCsv with correct CSV escaping) and tests/ledger-csv.test.ts. Do not touch src/cli.ts.",
+      "node_type": "implement",
+      "parallel_group": "implement"
+    },
+    {
+      "dependencies": [
+        "implement:registry",
+        "implement:ledger-csv"
+      ],
+      "required_capabilities": [],
+      "required_context": [],
+      "allowed_tools": [
+        "Bash"
+      ],
+      "acceptance_criteria": [],
+      "budget": {},
+      "status": "pending",
+      "inputs": {},
+      "state_changes": [],
+      "retry_policy": {
+        "max_retries": 0,
+        "on_exhausted": "fail"
+      },
+      "complexity": "low",
+      "reasoning": "low",
+      "attempts": 0,
+      "iteration": 1,
+      "node_id": "test",
+      "objective": "Run node --test tests/*.test.ts && npx tsc --noEmit -p tsconfig.json",
+      "node_type": "test",
+      "deterministic": true,
+      "command": "node --test tests/*.test.ts && npx tsc --noEmit -p tsconfig.json"
+    },
+    {
+      "dependencies": [
+        "test"
+      ],
+      "required_capabilities": [
+        "code_review",
+        "typescript",
+        "adversarial_reasoning"
+      ],
+      "required_context": [
+        {
+          "kind": "task"
+        },
+        {
+          "kind": "hsc",
+          "kinds": [
+            "constraint",
+            "decision",
+            "assumption"
+          ]
+        },
+        {
+          "kind": "node_output",
+          "node_id": "test"
+        },
+        {
+          "kind": "node_output",
+          "node_id": "implement:registry"
+        },
+        {
+          "kind": "node_output",
+          "node_id": "implement:ledger-csv"
+        }
+      ],
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Grep"
+      ],
+      "acceptance_criteria": [
+        {
+          "type": "file_exists",
+          "path": "src/registry.ts"
+        },
+        {
+          "type": "file_exists",
+          "path": "src/ledger-csv.ts"
+        },
+        {
+          "type": "file_exists",
+          "path": "tests/registry.test.ts"
+        },
+        {
+          "type": "file_exists",
+          "path": "tests/ledger-csv.test.ts"
+        },
+        {
+          "type": "file_contains",
+          "path": "src/cli.ts",
+          "pattern": "registry"
+        },
+        {
+          "type": "command",
+          "cmd": "node --test tests/*.test.ts",
+          "description": "all tests pass (existing + new)"
+        },
+        {
+          "type": "command",
+          "cmd": "npx tsc --noEmit -p tsconfig.json",
+          "description": "repo typechecks"
+        }
+      ],
+      "budget": {},
+      "status": "pending",
+      "inputs": {},
+      "state_changes": [],
+      "retry_policy": {
+        "max_retries": 1,
+        "on_exhausted": "fail"
+      },
+      "complexity": "medium",
+      "reasoning": "high",
+      "attempts": 0,
+      "iteration": 1,
+      "node_id": "review",
+      "objective": "Independently review the change against the acceptance criteria and test results",
+      "node_type": "review",
+      "loop_policy": {
+        "on_fail_expand": [
+          "patch",
+          "test",
+          "review"
+        ],
+        "max_iterations": 2
+      }
+    },
+    {
+      "dependencies": [
+        "review"
+      ],
+      "required_capabilities": [],
+      "required_context": [],
+      "allowed_tools": [],
+      "acceptance_criteria": [],
+      "budget": {},
+      "status": "pending",
+      "inputs": {},
+      "state_changes": [],
+      "retry_policy": {
+        "max_retries": 0,
+        "on_exhausted": "fail"
+      },
+      "complexity": "low",
+      "reasoning": "low",
+      "attempts": 0,
+      "iteration": 1,
+      "node_id": "human_gate",
+      "objective": "Human approval of the reviewed change",
+      "node_type": "human_gate",
+      "deterministic": true
+    }
+  ],
+  "replans": []
+}

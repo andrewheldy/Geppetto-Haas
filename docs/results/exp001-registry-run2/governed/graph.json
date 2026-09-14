@@ -1,0 +1,636 @@
+{
+  "graph_id": "g-exp001-registry-run2-governed",
+  "workflow_id": "exp001-registry-run2-governed",
+  "version": 1,
+  "nodes": [
+    {
+      "dependencies": [],
+      "required_capabilities": [
+        "architecture",
+        "typescript",
+        "task_decomposition"
+      ],
+      "required_context": [
+        {
+          "kind": "task"
+        },
+        {
+          "kind": "hsc",
+          "kinds": [
+            "constraint",
+            "decision",
+            "fact"
+          ]
+        },
+        {
+          "kind": "files",
+          "paths": [
+            "src/types.ts",
+            "src/ledger.ts",
+            "src/cli.ts",
+            "src/trace.ts",
+            "package.json",
+            "tsconfig.json"
+          ],
+          "max_tokens": 8000
+        }
+      ],
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Grep"
+      ],
+      "acceptance_criteria": [],
+      "budget": {
+        "max_usd": 4.17,
+        "max_seconds": 900
+      },
+      "status": "succeeded",
+      "inputs": {},
+      "state_changes": [
+        "s14",
+        "s15",
+        "s16",
+        "s17",
+        "s18",
+        "s19",
+        "s20",
+        "s21",
+        "s22",
+        "s23",
+        "s24",
+        "s25",
+        "s26",
+        "s27",
+        "s28",
+        "s29",
+        "s30",
+        "s31",
+        "s32"
+      ],
+      "retry_policy": {
+        "max_retries": 1,
+        "on_exhausted": "replan"
+      },
+      "complexity": "medium",
+      "reasoning": "high",
+      "attempts": 1,
+      "iteration": 1,
+      "node_id": "plan",
+      "objective": "Produce an implementation plan for: Extend Geppetto with two independent pieces of telemetry tooling. (A) A specialist promotion registry: src/registry.ts exporting a SpecialistRegistry class that ingests one or more run directories (each containing agents.json, ledger.jsonl and trace.jsonl as produced by src/orchestrator.ts), aggregates per-role statistics (number of invocations, node success rate derived from node.completed vs node.failed trace events, mean cost, mean input and output tokens, models used) and suggests promotion candidates (roles with at least 3 invocations and success rate >= 0.8) with a human-readable reason; it must be able to save/load registry.json and must never auto-promote (candidates only). Wire a `registry --runs <dir> [--out registry.json]` command into src/cli.ts that scans every subdirectory containing agents.json and prints a table. (B) A CSV exporter: src/ledger-csv.ts exporting ledgerToCsv(rows: ContextLedgerEntry[]): string that writes a header row from the ContextLedgerEntry keys and escapes commas, quotes and newlines correctly. Both parts need tests in tests/registry.test.ts and tests/ledger-csv.test.ts using node:test, and the whole repo must still typecheck.",
+      "node_type": "plan",
+      "execution_order": 1,
+      "assigned_agent": "planning-architect-01",
+      "outputs": {
+        "text": "{\"summary\":\"Read src/orchestrator.ts (artifact formats for agents.json/ledger.jsonl/trace.jsonl), src/types.ts (ContextLedgerEntry, AgentDefinition), src/factory.ts (role naming), src/cli.ts, src/experiment.ts and the existing node:test suite to ground the design. Plan: two new standalone modules (src/registry.ts, src/ledger-csv.ts), a small additive `registry` branch + `--runs` option in src/cli.ts, and two node:test files. No changes required to types.ts/ledger.ts/orchestrator.ts (ContextLedgerEntry is already exported); registry is read-only over run artifacts and only ever emits candidates.\",\"verdict\":\"n/a\",\"findings\":[\"Artifact formats confirmed: orchestrator writes agents.json (array of AgentDefinition with system_prompt dropped by JSON.stringify(undefined), so treat the loaded shape as Partial/Omit<AgentDefinition,'system_prompt'>), ledger.jsonl (one ContextLedgerEntry per line), trace.jsonl (one TraceEvent per line).\",\"Role attribution is available two ways: agents.json gives agent_id -> role and node_id -> role; ledger rows carry agent_id; trace node.completed/node.failed carry node_id. So: invocations/cost/tokens join via agent_id, success rate joins via node_id.\",\"Deterministic nodes (test, human_gate) produce ledger rows with agent_id 'test-runner'/model 'none' and trace node.completed events but have no entry in agents.json - they must be excluded from role stats (no role), which is exactly the desired behaviour.\",\"Retries push a new AgentDefinition per attempt for the same node_id (same role, since role is derived from node_type in factory.ts ROLE map), so node_id -> role stays unambiguous; invocation counts naturally include retries.\",\"ContextLedgerEntry has 32 keys, all primitives (string/number/boolean) - no nested objects - so CSV serialisation is straightforward and a fixed ordered column list with a compile-time exhaustiveness check is safe.\",\"tsconfig has erasableSyntaxOnly + verbatimModuleSyntax + allowImportingTsExtensions: imports must use `.ts` extensions, type-only imports must use `import type`, and no enums/parameter properties (static class fields with initialisers are fine).\",\"Existing tests use node:test + node:assert/strict and tests/helpers.ts (tmp(), task(), fakeRepo()); MockRuntime makes a real end-to-end Orchestrator run cheap, which enables a format-compatibility integration test for the registry.\"],\"decisions\":[\"Create src/ledger-csv.ts exporting `LEDGER_COLUMNS` (readonly ordered tuple of the 32 ContextLedgerEntry keys), `csvEscape(v: unknown): string` (internal or exported) and `ledgerToCsv(rows: ContextLedgerEntry[]): string`. Add a compile-time guard `type _Missing = Exclude<keyof ContextLedgerEntry, typeof LEDGER_COLUMNS[number]>; const _check: never = undefined as unknown as _Missing;` so a future field added to the interface breaks typecheck instead of silently dropping a column.\",\"CSV rules: quote a field iff it contains ',' '\\\"' '\\\\n' or '\\\\r'; escape embedded quotes by doubling; numbers via String(), booleans as true/false, null/undefined as empty; rows joined with '\\\\n' and NO trailing newline (header-only output === LEDGER_COLUMNS.join(',')).\",\"Create src/registry.ts exporting interfaces `RoleStats`, `PromotionCandidate`, `RegistryFile` and class `SpecialistRegistry` with: `ingestRun(dir: string): void`, `ingestRuns(dirs: string[]): void`, `static findRunDirs(root: string): string[]`, `roles(): RoleStats[]`, `candidates(): PromotionCandidate[]`, `toJSON(): RegistryFile`, `save(file: string): void`, `static load(file: string): SpecialistRegistry`, `table(): string`. Thresholds as static readonly fields MIN_INVOCATIONS = 3, MIN_SUCCESS_RATE = 0.8.\",\"RoleStats shape: { role, invocations, agents (distinct agent_ids), runs (run dir basenames), nodes_completed, nodes_failed, success_rate, total_cost_usd, total_input_tokens, total_output_tokens, mean_cost_usd, mean_input_tokens, mean_output_tokens, models[] }. Totals are persisted alongside means so save/load is lossless and further ingestRun() calls can keep accumulating after a load.\",\"Aggregation semantics: invocations = ledger rows whose agent_id resolves to a role (excludes deterministic rows); success_rate = nodes_completed / (nodes_completed + nodes_failed), 0 when the denominator is 0; models = sorted unique ledger `model` values excluding 'none'; means = totals / invocations, 0 when invocations is 0.\",\"Promotion is suggestion-only: candidates() is a pure derivation (invocations >= 3 && success_rate >= 0.8), each candidate carries `status: 'candidate'` and a human-readable `reason` e.g. \\\"Planning Architect: 4 invocations, 100% node success (4/4), mean $0.0123 / 1,200 in / 300 out tokens on haiku - suggest registering as a reusable specialist (human approval required).\\\" No API mutates agents.json or AgentDefinition; the registry only reads files.\",\"findRunDirs(root): read root's entries; if root itself contains agents.json include it; otherwise recurse one to two levels (enough for runs/<exp-id>/<mode>) collecting every directory that contains agents.json, sorted, skipping node_modules/.git/workspace/invocations. ingestRun throws on missing agents.json; missing or malformed ledger.jsonl / trace.jsonl are tolerated as empty (JSONL parsed line-by-line, blank lines skipped).\",\"CLI: add `runs: { type: \\\"string\\\" }` to the existing parseArgs options, a `registry` branch (`registry --runs <dir> [--out registry.json]`) that does SpecialistRegistry.findRunDirs(resolve(v.runs!)) -> ingestRuns -> console.log(reg.table()) -> reg.save(resolve(v.out)) only when --out is given, plus one USAGE line. Nothing else in cli.ts changes.\",\"table() renders a dependency-free fixed-width ASCII table (columns: role, invocations, success, mean $, mean in, mean out, models) followed by a 'Promotion candidates (suggestions only)' section; column widths computed from content.\",\"Tests: tests/ledger-csv.test.ts (header order/completeness, value ordering against a synthetic full entry, comma/quote/newline escaping, booleans+numbers, empty input = header only) and tests/registry.test.ts (fixture run dirs written to tmp(); multi-run aggregation, success rate from node.completed vs node.failed, candidate thresholds incl. 2-invocation and 0.5-success negatives, reason text, save/load round-trip deep-equality, agents.json byte-identical after ingest, findRunDirs skipping non-run dirs, plus one integration test that runs Orchestrator with MockRuntime and ingests its real out_dir).\"],\"assumptions\":[\"ContextLedgerEntry stays flat (all primitive fields); if a nested field is ever added, ledgerToCsv would need a JSON.stringify fallback (the planned `csvEscape(v: unknown)` already degrades gracefully via String()).\",\"Role is stable per node_type (factory.ts ROLE map), so node_id -> role from agents.json has no conflicts; if two roles ever shared a node_id the last one in agents.json wins.\",\"Control-mode run dirs contain no agents.json and are therefore correctly skipped by findRunDirs.\",\"Run directory layout under --runs is at most two levels deep (runs/<experiment-id>/<mode>); deeper nesting would need the recursion depth bumped.\",\"npx tsc --noEmit and node --test tests/*.test.ts are already green on the current tree, so the only new typecheck risk is the two new modules and their tests.\"],\"questions\":[\"Should `registry --runs` default to writing registry.json when --out is omitted? Plan assumes print-only unless --out is given.\",\"Should the CSV exporter also be surfaced as a CLI flag (e.g. `report --csv`)? Objective does not ask for it, so plan leaves it library-only to keep the diff minimal.\",\"Is a trailing newline expected at the end of ledgerToCsv output? Plan chooses no trailing newline for testability.\"],\"files_changed\":[],\"need_context\":[]}",
+        "summary": "Read src/orchestrator.ts (artifact formats for agents.json/ledger.jsonl/trace.jsonl), src/types.ts (ContextLedgerEntry, AgentDefinition), src/factory.ts (role naming), src/cli.ts, src/experiment.ts and the existing node:test suite to ground the design. Plan: two new standalone modules (src/registry.ts, src/ledger-csv.ts), a small additive `registry` branch + `--runs` option in src/cli.ts, and two node:test files. No changes required to types.ts/ledger.ts/orchestrator.ts (ContextLedgerEntry is already exported); registry is read-only over run artifacts and only ever emits candidates.\nFindings:\n- Artifact formats confirmed: orchestrator writes agents.json (array of AgentDefinition with system_prompt dropped by JSON.stringify(undefined), so treat the loaded shape as Partial/Omit<AgentDefinition,'system_prompt'>), ledger.jsonl (one ContextLedgerEntry per line), trace.jsonl (one TraceEvent per line).\n- Role attribution is available two ways: agents.json gives agent_id -> role and node_id -> role; ledger rows carry agent_id; trace node.completed/node.failed carry node_id. So: invocations/cost/tokens join via agent_id, success rate joins via node_id.\n- Deterministic nodes (test, human_gate) produce ledger rows with agent_id 'test-runner'/model 'none' and trace node.completed events but have no entry in agents.json - they must be excluded from role stats (no role), which is exactly the desired behaviour.\n- Retries push a new AgentDefinition per attempt for the same node_id (same role, since role is derived from node_type in factory.ts ROLE map), so node_id -> role stays unambiguous; invocation counts naturally include retries.\n- ContextLedgerEntry has 32 keys, all primitives (string/number/boolean) - no nested objects - so CSV serialisation is straightforward and a fixed ordered column list with a compile-time exhaustiveness check is safe.\n- tsconfig has erasableSyntaxOnly + verbatimModuleSyntax + allowImportingTsExtensions: imports must use `.ts` extensions, type-only imports must use `import type`, and no enums/parameter properties (static class fields with initialisers are fine).\n- Existing tests use node:test + node:assert/strict and tests/helpers.ts (tmp(), task(), fakeRepo()); MockRuntime makes a real end-to-end Orchestrator run cheap, which enables a format-compatibility integration test for the registry.",
+        "structured": {
+          "summary": "Read src/orchestrator.ts (artifact formats for agents.json/ledger.jsonl/trace.jsonl), src/types.ts (ContextLedgerEntry, AgentDefinition), src/factory.ts (role naming), src/cli.ts, src/experiment.ts and the existing node:test suite to ground the design. Plan: two new standalone modules (src/registry.ts, src/ledger-csv.ts), a small additive `registry` branch + `--runs` option in src/cli.ts, and two node:test files. No changes required to types.ts/ledger.ts/orchestrator.ts (ContextLedgerEntry is already exported); registry is read-only over run artifacts and only ever emits candidates.",
+          "verdict": "n/a",
+          "findings": [
+            "Artifact formats confirmed: orchestrator writes agents.json (array of AgentDefinition with system_prompt dropped by JSON.stringify(undefined), so treat the loaded shape as Partial/Omit<AgentDefinition,'system_prompt'>), ledger.jsonl (one ContextLedgerEntry per line), trace.jsonl (one TraceEvent per line).",
+            "Role attribution is available two ways: agents.json gives agent_id -> role and node_id -> role; ledger rows carry agent_id; trace node.completed/node.failed carry node_id. So: invocations/cost/tokens join via agent_id, success rate joins via node_id.",
+            "Deterministic nodes (test, human_gate) produce ledger rows with agent_id 'test-runner'/model 'none' and trace node.completed events but have no entry in agents.json - they must be excluded from role stats (no role), which is exactly the desired behaviour.",
+            "Retries push a new AgentDefinition per attempt for the same node_id (same role, since role is derived from node_type in factory.ts ROLE map), so node_id -> role stays unambiguous; invocation counts naturally include retries.",
+            "ContextLedgerEntry has 32 keys, all primitives (string/number/boolean) - no nested objects - so CSV serialisation is straightforward and a fixed ordered column list with a compile-time exhaustiveness check is safe.",
+            "tsconfig has erasableSyntaxOnly + verbatimModuleSyntax + allowImportingTsExtensions: imports must use `.ts` extensions, type-only imports must use `import type`, and no enums/parameter properties (static class fields with initialisers are fine).",
+            "Existing tests use node:test + node:assert/strict and tests/helpers.ts (tmp(), task(), fakeRepo()); MockRuntime makes a real end-to-end Orchestrator run cheap, which enables a format-compatibility integration test for the registry."
+          ],
+          "decisions": [
+            "Create src/ledger-csv.ts exporting `LEDGER_COLUMNS` (readonly ordered tuple of the 32 ContextLedgerEntry keys), `csvEscape(v: unknown): string` (internal or exported) and `ledgerToCsv(rows: ContextLedgerEntry[]): string`. Add a compile-time guard `type _Missing = Exclude<keyof ContextLedgerEntry, typeof LEDGER_COLUMNS[number]>; const _check: never = undefined as unknown as _Missing;` so a future field added to the interface breaks typecheck instead of silently dropping a column.",
+            "CSV rules: quote a field iff it contains ',' '\"' '\\n' or '\\r'; escape embedded quotes by doubling; numbers via String(), booleans as true/false, null/undefined as empty; rows joined with '\\n' and NO trailing newline (header-only output === LEDGER_COLUMNS.join(',')).",
+            "Create src/registry.ts exporting interfaces `RoleStats`, `PromotionCandidate`, `RegistryFile` and class `SpecialistRegistry` with: `ingestRun(dir: string): void`, `ingestRuns(dirs: string[]): void`, `static findRunDirs(root: string): string[]`, `roles(): RoleStats[]`, `candidates(): PromotionCandidate[]`, `toJSON(): RegistryFile`, `save(file: string): void`, `static load(file: string): SpecialistRegistry`, `table(): string`. Thresholds as static readonly fields MIN_INVOCATIONS = 3, MIN_SUCCESS_RATE = 0.8.",
+            "RoleStats shape: { role, invocations, agents (distinct agent_ids), runs (run dir basenames), nodes_completed, nodes_failed, success_rate, total_cost_usd, total_input_tokens, total_output_tokens, mean_cost_usd, mean_input_tokens, mean_output_tokens, models[] }. Totals are persisted alongside means so save/load is lossless and further ingestRun() calls can keep accumulating after a load.",
+            "Aggregation semantics: invocations = ledger rows whose agent_id resolves to a role (excludes deterministic rows); success_rate = nodes_completed / (nodes_completed + nodes_failed), 0 when the denominator is 0; models = sorted unique ledger `model` values excluding 'none'; means = totals / invocations, 0 when invocations is 0.",
+            "Promotion is suggestion-only: candidates() is a pure derivation (invocations >= 3 && success_rate >= 0.8), each candidate carries `status: 'candidate'` and a human-readable `reason` e.g. \"Planning Architect: 4 invocations, 100% node success (4/4), mean $0.0123 / 1,200 in / 300 out tokens on haiku - suggest registering as a reusable specialist (human approval required).\" No API mutates agents.json or AgentDefinition; the registry only reads files.",
+            "findRunDirs(root): read root's entries; if root itself contains agents.json include it; otherwise recurse one to two levels (enough for runs/<exp-id>/<mode>) collecting every directory that contains agents.json, sorted, skipping node_modules/.git/workspace/invocations. ingestRun throws on missing agents.json; missing or malformed ledger.jsonl / trace.jsonl are tolerated as empty (JSONL parsed line-by-line, blank lines skipped).",
+            "CLI: add `runs: { type: \"string\" }` to the existing parseArgs options, a `registry` branch (`registry --runs <dir> [--out registry.json]`) that does SpecialistRegistry.findRunDirs(resolve(v.runs!)) -> ingestRuns -> console.log(reg.table()) -> reg.save(resolve(v.out)) only when --out is given, plus one USAGE line. Nothing else in cli.ts changes.",
+            "table() renders a dependency-free fixed-width ASCII table (columns: role, invocations, success, mean $, mean in, mean out, models) followed by a 'Promotion candidates (suggestions only)' section; column widths computed from content.",
+            "Tests: tests/ledger-csv.test.ts (header order/completeness, value ordering against a synthetic full entry, comma/quote/newline escaping, booleans+numbers, empty input = header only) and tests/registry.test.ts (fixture run dirs written to tmp(); multi-run aggregation, success rate from node.completed vs node.failed, candidate thresholds incl. 2-invocation and 0.5-success negatives, reason text, save/load round-trip deep-equality, agents.json byte-identical after ingest, findRunDirs skipping non-run dirs, plus one integration test that runs Orchestrator with MockRuntime and ingests its real out_dir)."
+          ],
+          "assumptions": [
+            "ContextLedgerEntry stays flat (all primitive fields); if a nested field is ever added, ledgerToCsv would need a JSON.stringify fallback (the planned `csvEscape(v: unknown)` already degrades gracefully via String()).",
+            "Role is stable per node_type (factory.ts ROLE map), so node_id -> role from agents.json has no conflicts; if two roles ever shared a node_id the last one in agents.json wins.",
+            "Control-mode run dirs contain no agents.json and are therefore correctly skipped by findRunDirs.",
+            "Run directory layout under --runs is at most two levels deep (runs/<experiment-id>/<mode>); deeper nesting would need the recursion depth bumped.",
+            "npx tsc --noEmit and node --test tests/*.test.ts are already green on the current tree, so the only new typecheck risk is the two new modules and their tests."
+          ],
+          "questions": [
+            "Should `registry --runs` default to writing registry.json when --out is omitted? Plan assumes print-only unless --out is given.",
+            "Should the CSV exporter also be surfaced as a CLI flag (e.g. `report --csv`)? Objective does not ask for it, so plan leaves it library-only to keep the diff minimal.",
+            "Is a trailing newline expected at the end of ledgerToCsv output? Plan chooses no trailing newline for testability."
+          ],
+          "files_changed": [],
+          "need_context": []
+        },
+        "history_ref": "h1",
+        "files_changed": []
+      }
+    },
+    {
+      "dependencies": [
+        "plan"
+      ],
+      "required_capabilities": [
+        "typescript",
+        "implementation",
+        "test_generation"
+      ],
+      "required_context": [
+        {
+          "kind": "task"
+        },
+        {
+          "kind": "hsc",
+          "kinds": [
+            "constraint",
+            "decision",
+            "artifact"
+          ]
+        },
+        {
+          "kind": "node_output",
+          "node_id": "plan"
+        },
+        {
+          "kind": "files",
+          "paths": [
+            "src/types.ts",
+            "src/ledger.ts",
+            "src/trace.ts",
+            "src/cli.ts",
+            "src/factory.ts"
+          ],
+          "max_tokens": 8000
+        }
+      ],
+      "allowed_tools": [
+        "Read",
+        "Edit",
+        "Write",
+        "Glob",
+        "Grep",
+        "Bash"
+      ],
+      "acceptance_criteria": [
+        {
+          "type": "file_exists",
+          "path": "src/registry.ts"
+        },
+        {
+          "type": "file_exists",
+          "path": "tests/registry.test.ts"
+        }
+      ],
+      "budget": {
+        "max_usd": 4.17,
+        "max_seconds": 900
+      },
+      "status": "succeeded",
+      "inputs": {},
+      "state_changes": [
+        "s48",
+        "s49",
+        "s50",
+        "s51",
+        "s52",
+        "s53",
+        "s54",
+        "s55",
+        "s56",
+        "s57",
+        "s58",
+        "s59",
+        "s60",
+        "s61",
+        "s62",
+        "s63",
+        "s64"
+      ],
+      "retry_policy": {
+        "max_retries": 1,
+        "on_exhausted": "replan"
+      },
+      "complexity": "high",
+      "reasoning": "high",
+      "attempts": 1,
+      "iteration": 1,
+      "node_id": "implement:registry",
+      "objective": "Part (A): implement src/registry.ts (SpecialistRegistry: ingest run dirs, per-role stats, promotion candidates, save/load registry.json), add the `registry` command to src/cli.ts, and write tests/registry.test.ts with fixture run directories created in a temp dir.",
+      "node_type": "implement",
+      "parallel_group": "implement",
+      "execution_order": 2,
+      "assigned_agent": "implementation-engineer-02",
+      "outputs": {
+        "text": "{\"summary\":\"Implemented Part (A): src/registry.ts with a read-only SpecialistRegistry that ingests run directories (agents.json + ledger.jsonl + trace.jsonl), aggregates per-role stats (invocations, node success rate from node.completed vs node.failed, totals + means for cost/input/output tokens, distinct agents/runs/models), derives suggestion-only promotion candidates (>=3 invocations, >=0.8 success) with a human-readable reason, and supports save/load of registry.json plus an ASCII table(). Wired an additive `registry --runs <dir> [--out registry.json]` branch (+ `runs` parseArgs option and one USAGE line) into src/cli.ts. Added tests/registry.test.ts (12 tests) covering multi-run aggregation, success-rate derivation, both negative threshold cases, reason text, lossless save/load round-trip with continued accumulation, double-ingest guard, artifact immutability, findRunDirs filtering, error/malformed-input tolerance, table rendering, and an end-to-end ingest of a real Orchestrator+MockRuntime run. `node --test tests/*.test.ts` => 41/41 pass (includes the parallel agent's 6 ledger-csv tests); `npx tsc --noEmit -p tsconfig.json` clean. Nothing committed.\",\"verdict\":\"pass\",\"findings\":[\"Part (B) files (src/ledger-csv.ts, tests/ledger-csv.test.ts) were already present in the workspace from parallel work; I did not touch them. They pass standalone (6 tests) and in the combined run.\",\"Deterministic nodes (test runner / human gate) emit ledger rows with agent_id 'test-runner' and model 'none' that have no agents.json entry, so they are naturally excluded from role stats; verified by test.\",\"Orchestrator's agents.json drops system_prompt (JSON.stringify(undefined)), so the registry reads a loose AgentRecord shape ({agent_id, role, node_id, model}) instead of importing AgentDefinition, avoiding a type mismatch.\",\"Real orchestrator run: 3 roles x 1 invocation each, all at 100% success and therefore below the promotion threshold — confirms candidates() stays empty on a single run, as intended.\",\"No changes needed to src/types.ts, src/ledger.ts or src/orchestrator.ts; ContextLedgerEntry and TraceEvent were already exported.\"],\"decisions\":[\"src/registry.ts exports RoleStats, PromotionCandidate, RegistryFile and class SpecialistRegistry with ingestRun/ingestRuns/static findRunDirs/roles/candidates/runs/toJSON/save/static load/table/static reasonFor, plus static MIN_INVOCATIONS=3 and MIN_SUCCESS_RATE=0.8.\",\"Totals (total_cost_usd/total_input_tokens/total_output_tokens, nodes_completed/nodes_failed) are persisted and means/success_rate are recomputed in a private finalize(), making save/load lossless and allowing a loaded registry to keep ingesting further runs.\",\"ingestRun is idempotent per resolved absolute directory (a private ingested Set), so a repeated or overlapping scan never double-counts.\",\"ingestRun throws on a missing agents.json; malformed agents.json and missing/malformed ledger.jsonl or trace.jsonl are tolerated as empty (JSONL parsed line-by-line, blank/bad lines skipped).\",\"findRunDirs walks up to depth 3 from root, returns a directory as soon as it contains agents.json (never descending into it), skips node_modules/.git/workspace/invocations, returns [] for a nonexistent root, and returns a sorted list.\",\"save() returns the written RegistryFile and mkdirs the parent directory; the CLI only writes when --out is passed (print-only otherwise) and defaults --runs to ./runs.\",\"Thousands separators and percentages are formatted manually (regex + Math.round) rather than via toLocaleString, to keep output locale-independent and test-stable.\",\"Promotion remains advisory: candidates() is a pure derivation over roles(), each candidate carries status:'candidate' and a reason ending in '(human approval required)'; no code path writes to agents.json (asserted byte-identical in a test).\"],\"assumptions\":[\"Role is stable per node_id within a run (factory.ts derives role from node_type), so node_id -> role from agents.json is unambiguous; if two roles ever shared a node_id, the last agents.json entry wins.\",\"Run directory nesting under --runs is at most ~3 levels (runs/<experiment-id>/<mode>); deeper layouts need the depth bumped in findRunDirs.\",\"ContextLedgerEntry.estimated_cost_usd / input_tokens / output_tokens are the right cost and token fields for 'mean cost / mean input / mean output' (cache tokens are deliberately not folded in).\",\"Roles are keyed by the human-readable role string from agents.json; if factory.ts ROLE labels are renamed, historical registry.json entries will not merge with new runs.\",\"The parallel agent's src/ledger-csv.ts and tests/ledger-csv.test.ts are final; I only ran them, so a later rewrite there is outside my verification.\"],\"questions\":[\"Should `registry --runs` write registry.json by default when --out is omitted? Implemented as print-only unless --out is given.\",\"Should candidate roles be scoped per model (e.g. 'Planning Architect on haiku') rather than aggregated across models? Currently models are merged into one row per role.\",\"Should the registry expose a CLI flag to filter by mode or experiment id once many runs accumulate?\"],\"files_changed\":[\"src/registry.ts (new)\",\"tests/registry.test.ts (new)\",\"src/cli.ts (modified: registry import, USAGE line, `runs` option, registry command branch)\"],\"need_context\":[]}",
+        "summary": "Implemented Part (A): src/registry.ts with a read-only SpecialistRegistry that ingests run directories (agents.json + ledger.jsonl + trace.jsonl), aggregates per-role stats (invocations, node success rate from node.completed vs node.failed, totals + means for cost/input/output tokens, distinct agents/runs/models), derives suggestion-only promotion candidates (>=3 invocations, >=0.8 success) with a human-readable reason, and supports save/load of registry.json plus an ASCII table(). Wired an additive `registry --runs <dir> [--out registry.json]` branch (+ `runs` parseArgs option and one USAGE line) into src/cli.ts. Added tests/registry.test.ts (12 tests) covering multi-run aggregation, success-rate derivation, both negative threshold cases, reason text, lossless save/load round-trip with continued accumulation, double-ingest guard, artifact immutability, findRunDirs filtering, error/malformed-input tolerance, table rendering, and an end-to-end ingest of a real Orchestrator+MockRuntime run. `node --test tests/*.test.ts` => 41/41 pass (includes the parallel agent's 6 ledger-csv tests); `npx tsc --noEmit -p tsconfig.json` clean. Nothing committed.\nFindings:\n- Part (B) files (src/ledger-csv.ts, tests/ledger-csv.test.ts) were already present in the workspace from parallel work; I did not touch them. They pass standalone (6 tests) and in the combined run.\n- Deterministic nodes (test runner / human gate) emit ledger rows with agent_id 'test-runner' and model 'none' that have no agents.json entry, so they are naturally excluded from role stats; verified by test.\n- Orchestrator's agents.json drops system_prompt (JSON.stringify(undefined)), so the registry reads a loose AgentRecord shape ({agent_id, role, node_id, model}) instead of importing AgentDefinition, avoiding a type mismatch.\n- Real orchestrator run: 3 roles x 1 invocation each, all at 100% success and therefore below the promotion threshold — confirms candidates() stays empty on a single run, as intended.\n- No changes needed to src/types.ts, src/ledger.ts or src/orchestrator.ts; ContextLedgerEntry and TraceEvent were already exported.\nFiles: src/registry.ts (new), tests/registry.test.ts (new), src/cli.ts (modified: registry import, USAGE line, `runs` option, registry command branch)",
+        "structured": {
+          "summary": "Implemented Part (A): src/registry.ts with a read-only SpecialistRegistry that ingests run directories (agents.json + ledger.jsonl + trace.jsonl), aggregates per-role stats (invocations, node success rate from node.completed vs node.failed, totals + means for cost/input/output tokens, distinct agents/runs/models), derives suggestion-only promotion candidates (>=3 invocations, >=0.8 success) with a human-readable reason, and supports save/load of registry.json plus an ASCII table(). Wired an additive `registry --runs <dir> [--out registry.json]` branch (+ `runs` parseArgs option and one USAGE line) into src/cli.ts. Added tests/registry.test.ts (12 tests) covering multi-run aggregation, success-rate derivation, both negative threshold cases, reason text, lossless save/load round-trip with continued accumulation, double-ingest guard, artifact immutability, findRunDirs filtering, error/malformed-input tolerance, table rendering, and an end-to-end ingest of a real Orchestrator+MockRuntime run. `node --test tests/*.test.ts` => 41/41 pass (includes the parallel agent's 6 ledger-csv tests); `npx tsc --noEmit -p tsconfig.json` clean. Nothing committed.",
+          "verdict": "pass",
+          "findings": [
+            "Part (B) files (src/ledger-csv.ts, tests/ledger-csv.test.ts) were already present in the workspace from parallel work; I did not touch them. They pass standalone (6 tests) and in the combined run.",
+            "Deterministic nodes (test runner / human gate) emit ledger rows with agent_id 'test-runner' and model 'none' that have no agents.json entry, so they are naturally excluded from role stats; verified by test.",
+            "Orchestrator's agents.json drops system_prompt (JSON.stringify(undefined)), so the registry reads a loose AgentRecord shape ({agent_id, role, node_id, model}) instead of importing AgentDefinition, avoiding a type mismatch.",
+            "Real orchestrator run: 3 roles x 1 invocation each, all at 100% success and therefore below the promotion threshold — confirms candidates() stays empty on a single run, as intended.",
+            "No changes needed to src/types.ts, src/ledger.ts or src/orchestrator.ts; ContextLedgerEntry and TraceEvent were already exported."
+          ],
+          "decisions": [
+            "src/registry.ts exports RoleStats, PromotionCandidate, RegistryFile and class SpecialistRegistry with ingestRun/ingestRuns/static findRunDirs/roles/candidates/runs/toJSON/save/static load/table/static reasonFor, plus static MIN_INVOCATIONS=3 and MIN_SUCCESS_RATE=0.8.",
+            "Totals (total_cost_usd/total_input_tokens/total_output_tokens, nodes_completed/nodes_failed) are persisted and means/success_rate are recomputed in a private finalize(), making save/load lossless and allowing a loaded registry to keep ingesting further runs.",
+            "ingestRun is idempotent per resolved absolute directory (a private ingested Set), so a repeated or overlapping scan never double-counts.",
+            "ingestRun throws on a missing agents.json; malformed agents.json and missing/malformed ledger.jsonl or trace.jsonl are tolerated as empty (JSONL parsed line-by-line, blank/bad lines skipped).",
+            "findRunDirs walks up to depth 3 from root, returns a directory as soon as it contains agents.json (never descending into it), skips node_modules/.git/workspace/invocations, returns [] for a nonexistent root, and returns a sorted list.",
+            "save() returns the written RegistryFile and mkdirs the parent directory; the CLI only writes when --out is passed (print-only otherwise) and defaults --runs to ./runs.",
+            "Thousands separators and percentages are formatted manually (regex + Math.round) rather than via toLocaleString, to keep output locale-independent and test-stable.",
+            "Promotion remains advisory: candidates() is a pure derivation over roles(), each candidate carries status:'candidate' and a reason ending in '(human approval required)'; no code path writes to agents.json (asserted byte-identical in a test)."
+          ],
+          "assumptions": [
+            "Role is stable per node_id within a run (factory.ts derives role from node_type), so node_id -> role from agents.json is unambiguous; if two roles ever shared a node_id, the last agents.json entry wins.",
+            "Run directory nesting under --runs is at most ~3 levels (runs/<experiment-id>/<mode>); deeper layouts need the depth bumped in findRunDirs.",
+            "ContextLedgerEntry.estimated_cost_usd / input_tokens / output_tokens are the right cost and token fields for 'mean cost / mean input / mean output' (cache tokens are deliberately not folded in).",
+            "Roles are keyed by the human-readable role string from agents.json; if factory.ts ROLE labels are renamed, historical registry.json entries will not merge with new runs.",
+            "The parallel agent's src/ledger-csv.ts and tests/ledger-csv.test.ts are final; I only ran them, so a later rewrite there is outside my verification."
+          ],
+          "questions": [
+            "Should `registry --runs` write registry.json by default when --out is omitted? Implemented as print-only unless --out is given.",
+            "Should candidate roles be scoped per model (e.g. 'Planning Architect on haiku') rather than aggregated across models? Currently models are merged into one row per role.",
+            "Should the registry expose a CLI flag to filter by mode or experiment id once many runs accumulate?"
+          ],
+          "files_changed": [
+            "src/registry.ts (new)",
+            "tests/registry.test.ts (new)",
+            "src/cli.ts (modified: registry import, USAGE line, `runs` option, registry command branch)"
+          ],
+          "need_context": []
+        },
+        "history_ref": "h3",
+        "verdict": "pass",
+        "files_changed": [
+          "src/registry.ts (new)",
+          "tests/registry.test.ts (new)",
+          "src/cli.ts (modified: registry import, USAGE line, `runs` option, registry command branch)"
+        ]
+      }
+    },
+    {
+      "dependencies": [
+        "plan"
+      ],
+      "required_capabilities": [
+        "typescript",
+        "implementation",
+        "test_generation"
+      ],
+      "required_context": [
+        {
+          "kind": "task"
+        },
+        {
+          "kind": "hsc",
+          "kinds": [
+            "constraint",
+            "decision",
+            "artifact"
+          ]
+        },
+        {
+          "kind": "node_output",
+          "node_id": "plan"
+        },
+        {
+          "kind": "files",
+          "paths": [
+            "src/types.ts",
+            "src/ledger.ts"
+          ],
+          "max_tokens": 8000
+        }
+      ],
+      "allowed_tools": [
+        "Read",
+        "Edit",
+        "Write",
+        "Glob",
+        "Grep",
+        "Bash"
+      ],
+      "acceptance_criteria": [
+        {
+          "type": "file_exists",
+          "path": "src/ledger-csv.ts"
+        },
+        {
+          "type": "file_exists",
+          "path": "tests/ledger-csv.test.ts"
+        }
+      ],
+      "budget": {
+        "max_usd": 4.17,
+        "max_seconds": 900
+      },
+      "status": "succeeded",
+      "inputs": {},
+      "state_changes": [
+        "s33",
+        "s34",
+        "s35",
+        "s36",
+        "s37",
+        "s38",
+        "s39",
+        "s40",
+        "s41",
+        "s42",
+        "s43",
+        "s44",
+        "s45",
+        "s46",
+        "s47"
+      ],
+      "retry_policy": {
+        "max_retries": 1,
+        "on_exhausted": "replan"
+      },
+      "complexity": "high",
+      "reasoning": "high",
+      "attempts": 1,
+      "iteration": 1,
+      "node_id": "implement:ledger-csv",
+      "objective": "Part (B): implement src/ledger-csv.ts (ledgerToCsv with correct CSV escaping) and tests/ledger-csv.test.ts. Do not touch src/cli.ts.",
+      "node_type": "implement",
+      "parallel_group": "implement",
+      "execution_order": 3,
+      "assigned_agent": "implementation-engineer-03",
+      "outputs": {
+        "text": "{\"summary\":\"Implemented part (B) of the objective: src/ledger-csv.ts exporting LEDGER_COLUMNS, csvEscape and ledgerToCsv, plus tests/ledger-csv.test.ts with six node:test cases. CSV quoting follows RFC 4180 (quote iff the field contains a comma, double-quote, LF or CR; embedded quotes doubled), numbers/booleans stringify bare, null/undefined become empty, rows join with \\\\n and there is no trailing newline. The compile-time exhaustiveness guard was verified by deleting a column and observing tsc fail with TS2322. Full repo typecheck is clean and the whole suite passes 29/29; only the two new files exist in the working tree (cli.ts untouched, as instructed).\",\"verdict\":\"pass\",\"findings\":[\"ContextLedgerEntry has 30 fields, not the 32 stated in the plan handoff. LEDGER_COLUMNS therefore has 30 entries; a test asserts deepEqual against Object.keys() of a fully-populated entry so the count stays self-checking.\",\"All 30 fields are primitives (string | number | boolean | ExecutionMode), so no JSON.stringify fallback is needed today; csvEscape(v: unknown) degrades via String() if a nested field is ever added.\",\"The compile-time guard works as intended: removing the \\\"ts\\\" column makes tsc emit `src/ledger-csv.ts(45,7): error TS2322: Type '\\\"ts\\\"' is not assignable to type 'never'`. Verified by temporary mutation and restore.\",\"`as const satisfies readonly (keyof ContextLedgerEntry)[]` covers the reverse direction (a typo'd or stale column name fails to compile) without needing a second never-assignment.\",\"erasableSyntaxOnly/verbatimModuleSyntax constraints are honoured: `import type` for ContextLedgerEntry, .ts import extension, no enums, no parameter properties, no classes.\",\"Baseline confirmed green before and after the change: npx tsc --noEmit -p tsconfig.json exits 0, node --test tests/*.test.ts reports 29 pass / 0 fail.\"],\"decisions\":[\"Column order is the declaration order of ContextLedgerEntry in src/types.ts (30 columns), keeping CSV diffs stable across runs.\",\"Kept the accepted `const _check: never` guard form rather than a purely type-level assertion, and added `void _check;` so the binding is unambiguously used; runtime cost is one erased-type const.\",\"csvEscape is exported (not module-private) so the escaping rules are directly unit-testable and reusable by a future CLI flag.\",\"ledgerToCsv emits no trailing newline; header-only output is exactly LEDGER_COLUMNS.join(','), as decided in the plan.\",\"Test suite includes a ~20-line RFC 4180 reader used only as an oracle, proving the writer is round-trippable rather than only asserting literal strings.\"],\"assumptions\":[\"Consumers wanting a POSIX-style trailing newline will add it at the write site (e.g. writeFileSync(f, ledgerToCsv(rows) + \\\"\\\\n\\\")); the library deliberately does not.\",\"No BOM is emitted, so Excel on Windows may mis-detect UTF-8 in non-ASCII node objectives. Acceptable for a telemetry export consumed by scripts/pandas.\",\"Row separator is LF, not the CRLF strict RFC 4180 prescribes; escaping still quotes any field containing CR or LF, so output stays unambiguous for standard parsers.\",\"ContextLedgerEntry remains flat; a nested field would render as [object Object] until a JSON.stringify branch is added to csvEscape.\"],\"questions\":[\"The plan handoff said ContextLedgerEntry has 32 keys; the actual interface has 30. Confirm no ledger fields were expected to land as part of this change (the guard will catch future additions at compile time).\",\"Should the CSV exporter be surfaced via CLI (e.g. `report --csv`)? Left library-only per the plan to keep the diff minimal.\",\"Trailing newline: chosen as 'none' for testability - flag if downstream tooling expects one.\"],\"files_changed\":[\"src/ledger-csv.ts (new)\",\"tests/ledger-csv.test.ts (new)\"],\"need_context\":[]}",
+        "summary": "Implemented part (B) of the objective: src/ledger-csv.ts exporting LEDGER_COLUMNS, csvEscape and ledgerToCsv, plus tests/ledger-csv.test.ts with six node:test cases. CSV quoting follows RFC 4180 (quote iff the field contains a comma, double-quote, LF or CR; embedded quotes doubled), numbers/booleans stringify bare, null/undefined become empty, rows join with \\n and there is no trailing newline. The compile-time exhaustiveness guard was verified by deleting a column and observing tsc fail with TS2322. Full repo typecheck is clean and the whole suite passes 29/29; only the two new files exist in the working tree (cli.ts untouched, as instructed).\nFindings:\n- ContextLedgerEntry has 30 fields, not the 32 stated in the plan handoff. LEDGER_COLUMNS therefore has 30 entries; a test asserts deepEqual against Object.keys() of a fully-populated entry so the count stays self-checking.\n- All 30 fields are primitives (string | number | boolean | ExecutionMode), so no JSON.stringify fallback is needed today; csvEscape(v: unknown) degrades via String() if a nested field is ever added.\n- The compile-time guard works as intended: removing the \"ts\" column makes tsc emit `src/ledger-csv.ts(45,7): error TS2322: Type '\"ts\"' is not assignable to type 'never'`. Verified by temporary mutation and restore.\n- `as const satisfies readonly (keyof ContextLedgerEntry)[]` covers the reverse direction (a typo'd or stale column name fails to compile) without needing a second never-assignment.\n- erasableSyntaxOnly/verbatimModuleSyntax constraints are honoured: `import type` for ContextLedgerEntry, .ts import extension, no enums, no parameter properties, no classes.\n- Baseline confirmed green before and after the change: npx tsc --noEmit -p tsconfig.json exits 0, node --test tests/*.test.ts reports 29 pass / 0 fail.\nFiles: src/ledger-csv.ts (new), tests/ledger-csv.test.ts (new)",
+        "structured": {
+          "summary": "Implemented part (B) of the objective: src/ledger-csv.ts exporting LEDGER_COLUMNS, csvEscape and ledgerToCsv, plus tests/ledger-csv.test.ts with six node:test cases. CSV quoting follows RFC 4180 (quote iff the field contains a comma, double-quote, LF or CR; embedded quotes doubled), numbers/booleans stringify bare, null/undefined become empty, rows join with \\n and there is no trailing newline. The compile-time exhaustiveness guard was verified by deleting a column and observing tsc fail with TS2322. Full repo typecheck is clean and the whole suite passes 29/29; only the two new files exist in the working tree (cli.ts untouched, as instructed).",
+          "verdict": "pass",
+          "findings": [
+            "ContextLedgerEntry has 30 fields, not the 32 stated in the plan handoff. LEDGER_COLUMNS therefore has 30 entries; a test asserts deepEqual against Object.keys() of a fully-populated entry so the count stays self-checking.",
+            "All 30 fields are primitives (string | number | boolean | ExecutionMode), so no JSON.stringify fallback is needed today; csvEscape(v: unknown) degrades via String() if a nested field is ever added.",
+            "The compile-time guard works as intended: removing the \"ts\" column makes tsc emit `src/ledger-csv.ts(45,7): error TS2322: Type '\"ts\"' is not assignable to type 'never'`. Verified by temporary mutation and restore.",
+            "`as const satisfies readonly (keyof ContextLedgerEntry)[]` covers the reverse direction (a typo'd or stale column name fails to compile) without needing a second never-assignment.",
+            "erasableSyntaxOnly/verbatimModuleSyntax constraints are honoured: `import type` for ContextLedgerEntry, .ts import extension, no enums, no parameter properties, no classes.",
+            "Baseline confirmed green before and after the change: npx tsc --noEmit -p tsconfig.json exits 0, node --test tests/*.test.ts reports 29 pass / 0 fail."
+          ],
+          "decisions": [
+            "Column order is the declaration order of ContextLedgerEntry in src/types.ts (30 columns), keeping CSV diffs stable across runs.",
+            "Kept the accepted `const _check: never` guard form rather than a purely type-level assertion, and added `void _check;` so the binding is unambiguously used; runtime cost is one erased-type const.",
+            "csvEscape is exported (not module-private) so the escaping rules are directly unit-testable and reusable by a future CLI flag.",
+            "ledgerToCsv emits no trailing newline; header-only output is exactly LEDGER_COLUMNS.join(','), as decided in the plan.",
+            "Test suite includes a ~20-line RFC 4180 reader used only as an oracle, proving the writer is round-trippable rather than only asserting literal strings."
+          ],
+          "assumptions": [
+            "Consumers wanting a POSIX-style trailing newline will add it at the write site (e.g. writeFileSync(f, ledgerToCsv(rows) + \"\\n\")); the library deliberately does not.",
+            "No BOM is emitted, so Excel on Windows may mis-detect UTF-8 in non-ASCII node objectives. Acceptable for a telemetry export consumed by scripts/pandas.",
+            "Row separator is LF, not the CRLF strict RFC 4180 prescribes; escaping still quotes any field containing CR or LF, so output stays unambiguous for standard parsers.",
+            "ContextLedgerEntry remains flat; a nested field would render as [object Object] until a JSON.stringify branch is added to csvEscape."
+          ],
+          "questions": [
+            "The plan handoff said ContextLedgerEntry has 32 keys; the actual interface has 30. Confirm no ledger fields were expected to land as part of this change (the guard will catch future additions at compile time).",
+            "Should the CSV exporter be surfaced via CLI (e.g. `report --csv`)? Left library-only per the plan to keep the diff minimal.",
+            "Trailing newline: chosen as 'none' for testability - flag if downstream tooling expects one."
+          ],
+          "files_changed": [
+            "src/ledger-csv.ts (new)",
+            "tests/ledger-csv.test.ts (new)"
+          ],
+          "need_context": []
+        },
+        "history_ref": "h2",
+        "verdict": "pass",
+        "files_changed": [
+          "src/ledger-csv.ts (new)",
+          "tests/ledger-csv.test.ts (new)"
+        ]
+      }
+    },
+    {
+      "dependencies": [
+        "implement:registry",
+        "implement:ledger-csv"
+      ],
+      "required_capabilities": [],
+      "required_context": [],
+      "allowed_tools": [
+        "Bash"
+      ],
+      "acceptance_criteria": [],
+      "budget": {},
+      "status": "succeeded",
+      "inputs": {},
+      "state_changes": [
+        "s65"
+      ],
+      "retry_policy": {
+        "max_retries": 0,
+        "on_exhausted": "fail"
+      },
+      "complexity": "low",
+      "reasoning": "low",
+      "attempts": 1,
+      "iteration": 1,
+      "node_id": "test",
+      "objective": "Run node --test tests/*.test.ts && npx tsc --noEmit -p tsconfig.json",
+      "node_type": "test",
+      "deterministic": true,
+      "command": "node --test tests/*.test.ts && npx tsc --noEmit -p tsconfig.json",
+      "execution_order": 4,
+      "outputs": {
+        "text": "$ node --test tests/*.test.ts && npx tsc --noEmit -p tsconfig.json\nexit code: 0\n✔ control mode: one session whose context accumulates monotonically (5.671875ms)\n✔ experiment runs both modes on isolated workspaces and produces a comparable report (39.91075ms)\n✔ compaction keeps signal lines, stores raw in L2, and reports sizes (28.184709ms)\n✔ rehydration retrieves the smallest slice from HSC + L2 with provenance and is traced (1.0545ms)\n✔ admission fits a token budget and prefers relevant items (0.660833ms)\n✔ govern() decays and reconciles conflicts, escalating ties (0.92675ms)\n✔ redundancy detection: restated decisions are not admitted twice (0.698834ms)\n✔ candidate state is not injectable until promoted; rejection preserves the entry (17.919541ms)\n✔ supersede links provenance; conflicts become contested and resolve by evidence (0.581958ms)\n✔ volatile entries decay to stale after 4 node executions; durable ones do not (1.29625ms)\n✔ slice honours token budget and ranks accepted first (0.317541ms)\n✔ empty input yields the header row only, with no trailing newline (1.332916ms)\n✔ header covers every ContextLedgerEntry key exactly once, in declaration order (1.161875ms)\n✔ values are emitted in column order, one line per row (0.529125ms)\n✔ numbers and booleans are unquoted primitives (0.221ms)\n✔ commas, quotes and newlines are escaped per RFC 4180 (0.208083ms)\n✔ escaped fields survive a round-trip through a minimal RFC 4180 parser (6.803291ms)\n✔ happy path: task → graph → JIT agents → compiled context → HSC → ledger → trace (22.815458ms)\n✔ review fail triggers a bounded patch→test→review loop, then passes (19.37275ms)\n✔ review loop exhaustion is recorded and the gate fails closed (13.509916ms)\n✔ missing context → JIT rehydration → re-invocation, measured as a retrieval not a retry (12.388625ms)\n✔ node failure → retry with escalated model → replan with diagnose node (17.041458ms)\n✔ parallel fan-out runs concurrently and joins at test (105.213167ms)\n✔ budget exhaustion stops the workflow (3.826709ms)\n✔ planner emits the default build loop with a deterministic test join and bounded review loop (6.65125ms)\n✔ subtasks fan out in parallel and join at test (0.870292ms)\n✔ loop expansion is bounded and rewires the human gate; replan inserts diagnose then re-attempt, max twice (2.0085ms)\n✔ router explains itself, escalates on retry, respects caps; factory enforces least privilege (0.597834ms)\n✔ parallel implement nodes only carry file criteria that belong to their subtask (0.159333ms)\n✔ aggregates per-role stats across runs and ignores roleless deterministic rows (10.531709ms)\n✔ success rate comes from node.completed vs node.failed (2.526667ms)\n✔ candidates need >=3 invocations and >=0.8 success, and are suggestions only (1.990875ms)\n✔ 2 invocations is not a candidate even at 100% success (0.698333ms)\n✔ 0.5 success is not a candidate even with many invocations (2.72ms)\n✔ save/load round-trips losslessly and keeps accumulating (2.872416ms)\n✔ ingesting the same run twice does not double-count (1.369ms)\n✔ registry never mutates run artifacts (3.479292ms)\n✔ findRunDirs skips non-run directories and recurses into experiment layouts (1.015125ms)\n✔ ingestRun rejects a directory without agents.json; malformed jsonl is tolerated (2.470709ms)\n✔ table renders roles and a candidate section (1.385541ms)\n✔ ingests a real orchestrator run directory (22.549417ms)\nℹ tests 41\nℹ suites 0\nℹ pass 41\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 376.52975\n\n",
+        "summary": "$ node --test tests/*.test.ts && npx tsc --noEmit -p tsconfig.json\nexit code: 0\n✔ redundancy detection: restated decisions are not admitted twice (0.698834ms)\n✔ review fail triggers a bounded patch→test→review loop, then passes (19.37275ms)\n✔ review loop exhaustion is recorded and the gate fails closed (13.509916ms)\n✔ node failure → retry with escalated model → replan with diagnose node (17.041458ms)\n✔ success rate comes from node.completed vs node.failed (2.526667ms)\nℹ tests 41\nℹ pass 41\nℹ fail 0\nℹ todo 0\nℹ duration_ms 376.52975\n[compacted: 51 lines → 12; raw in L2 h4]",
+        "history_ref": "h4",
+        "verdict": "pass",
+        "structured": {
+          "exit_code": 0
+        }
+      }
+    },
+    {
+      "dependencies": [
+        "test"
+      ],
+      "required_capabilities": [
+        "code_review",
+        "typescript",
+        "adversarial_reasoning"
+      ],
+      "required_context": [
+        {
+          "kind": "task"
+        },
+        {
+          "kind": "hsc",
+          "kinds": [
+            "constraint",
+            "decision",
+            "assumption"
+          ]
+        },
+        {
+          "kind": "node_output",
+          "node_id": "test"
+        },
+        {
+          "kind": "node_output",
+          "node_id": "implement:registry"
+        },
+        {
+          "kind": "node_output",
+          "node_id": "implement:ledger-csv"
+        }
+      ],
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Grep"
+      ],
+      "acceptance_criteria": [
+        {
+          "type": "file_exists",
+          "path": "src/registry.ts"
+        },
+        {
+          "type": "file_exists",
+          "path": "src/ledger-csv.ts"
+        },
+        {
+          "type": "file_exists",
+          "path": "tests/registry.test.ts"
+        },
+        {
+          "type": "file_exists",
+          "path": "tests/ledger-csv.test.ts"
+        },
+        {
+          "type": "file_contains",
+          "path": "src/cli.ts",
+          "pattern": "registry"
+        },
+        {
+          "type": "command",
+          "cmd": "node --test tests/*.test.ts",
+          "description": "all tests pass (existing + new)"
+        },
+        {
+          "type": "command",
+          "cmd": "npx tsc --noEmit -p tsconfig.json",
+          "description": "repo typechecks"
+        }
+      ],
+      "budget": {},
+      "status": "succeeded",
+      "inputs": {},
+      "state_changes": [
+        "s66",
+        "s67",
+        "s68",
+        "s69",
+        "s70",
+        "s71",
+        "s72",
+        "s73",
+        "s74",
+        "s75"
+      ],
+      "retry_policy": {
+        "max_retries": 1,
+        "on_exhausted": "fail"
+      },
+      "complexity": "medium",
+      "reasoning": "high",
+      "attempts": 1,
+      "iteration": 1,
+      "node_id": "review",
+      "objective": "Independently review the change against the acceptance criteria and test results",
+      "node_type": "review",
+      "loop_policy": {
+        "on_fail_expand": [
+          "patch",
+          "test",
+          "review"
+        ],
+        "max_iterations": 2
+      },
+      "execution_order": 5,
+      "assigned_agent": "independent-reviewer-04",
+      "outputs": {
+        "text": "{\"summary\":\"Reviewed src/registry.ts, src/ledger-csv.ts, src/cli.ts and both test files against the objective, cross-checking the registry's joins against the real artifact producers (orchestrator.ts:115/135/140/190/280, factory.ts:73-79) and LEDGER_COLUMNS against types.ts:297-328. All seven acceptance criteria are met: the four files exist, cli.ts wires `registry --runs <dir> [--out registry.json]`, 41/41 tests pass with no baseline test lost (23+6+12), and tsc --noEmit is clean under erasableSyntaxOnly/verbatimModuleSyntax. CSV quoting is RFC 4180-correct and proven round-trippable by the test's own parser oracle; the column list is complete, in declaration order, and guarded in both directions at compile time. Promotion stays advisory: the only write path in registry.ts is save() to the --out file, agents.json is never opened for writing, and candidates() is a pure derivation. Verdict pass, with four non-blocking findings.\",\"verdict\":\"pass\",\"findings\":[\"VERIFIED: LEDGER_COLUMNS (src/ledger-csv.ts:8-39) contains exactly the 30 keys of ContextLedgerEntry (src/types.ts:297-328) in declaration order. `satisfies readonly (keyof ContextLedgerEntry)[]` rejects stale names and the _Missing/never guard (src/ledger-csv.ts:45-47) rejects added fields. A duplicated column would NOT be caught by the type system - only by the Set assertion in tests/ledger-csv.test.ts:52.\",\"VERIFIED: csvEscape (src/ledger-csv.ts:50-55) quotes iff the field contains , \\\" LF or CR and doubles embedded quotes; tests/ledger-csv.test.ts:95-133 round-trips through an independent RFC 4180 reader, so the writer is checked against a parser rather than against literal strings.\",\"VERIFIED: registry joins match the real producers. agents.json carries role/node_id/agent_id (src/orchestrator.ts:115, src/factory.ts:73-79); node.completed/node.failed carry node_id (src/orchestrator.ts:135,140); agent invocations produce one ledger row (src/orchestrator.ts:280) while deterministic nodes write agent_id 'test-runner' model 'none' (src/orchestrator.ts:190). Exclusion of deterministic rows in src/registry.ts:130-131 is therefore structural, not a heuristic.\",\"VERIFIED: no mutation of run artifacts. The only writeFileSync in src/registry.ts is save() (line 220); candidates() (188-200) is a pure derivation carrying status:'candidate' and a reason ending in '(human approval required)'. Constraint 'never auto-promote' holds.\",\"VERIFIED: findRunDirs (src/registry.ts:86-100) returns on the first agents.json without descending, so the workspace/agents.json decoy is unreachable via two independent mechanisms (early return plus SKIP_DIRS). Depth 3 from root covers runs/<exp>/<mode>. Nonexistent root returns [].\",\"FINDING (latent, non-blocking): SpecialistRegistry.load (src/registry.ts:224-241) does not restore the private `ingested` set, and RoleStats.runs stores basenames rather than absolute paths, so a load-then-ingest of an already-counted run double-counts. No code path in the repo does this (the CLI at src/cli.ts:51-57 always builds a fresh registry), but the 'keeps accumulating after load' story is only safe for runs not already in the file.\",\"FINDING (cosmetic): agent ids from factory.ts:75 are unique per process, not globally, so two separate runs can both contain 'planning-architect-01'. uniqSorted in finalize() (src/registry.ts:170) merges them, making RoleStats.agents an undercount of distinct agents. Invocations/costs are unaffected. Same basename-collision applies to RoleStats.runs and runs() for e.g. runs/expA/governed vs runs/expB/governed.\",\"FINDING (semantic, worth documenting): a failed agent attempt throws before the ledger row is written (src/orchestrator.ts:229 vs 280) but still emits node.failed (line 140). So `invocations` counts successful invocations while success_rate's denominator counts all node attempts - a role with 3 successes and 2 failed attempts reports invocations=3 at 60% success. This is conservative and matches the objective's literal wording ('derived from node.completed vs node.failed'), but invocations != node attempts.\",\"FINDING (encapsulation nit): roles() and candidates() return the internal RoleStats objects and share the `models` array reference (src/registry.ts:183-197); a caller mutating the result mutates registry state. Also table() spreads rows into Math.max (src/registry.ts:250), which would hit the argument limit at ~65k roles.\",\"FINDING (minor, CSV): no BOM and no mitigation for spreadsheet formula injection (a field starting with = + - @ is emitted bare). Field values are generated ids/numbers today, so risk is low, but the export is not safe to open blindly in Excel.\",\"SCOPE CHECK: the working-tree diff touches only src/cli.ts, src/ledger-csv.ts, src/registry.ts and the two new test files. src/types.ts, src/ledger.ts and src/orchestrator.ts are unmodified; cli.ts changes are confined to the import (line 11), one USAGE line (18), the `runs` parseArgs option (26) and the registry branch (51-57), plus one extra 'scanned N run directories' log beyond the plan (trivial).\"],\"decisions\":[\"Verdict pass: all seven acceptance criteria confirmed by reading the files and the reported command output (41/41 tests, tsc exit 0); no correctness bug found that affects specified behaviour.\",\"The four findings above are recorded as follow-up items, not blockers: none of them changes the output of any acceptance-criteria command or violates a stated constraint.\"],\"assumptions\":[\"I have read-only authority and could not execute commands, so the exit codes for `node --test tests/*.test.ts` and `npx tsc --noEmit -p tsconfig.json` are taken from the packet's test output; I confirmed the source contains nothing that would obviously break either (no enums, no parameter properties, import type only, `let entries;` is a legal evolving-any, and noUncheckedIndexedAccess is off in tsconfig.json).\",\"Test counts reconcile (23 baseline + 6 ledger-csv + 12 registry = 41), which I take as evidence no pre-existing test was deleted or weakened; I did not diff the untouched test files.\"],\"questions\":[\"Should SpecialistRegistry.load persist absolute run paths (or a run fingerprint) so the ingest-idempotency guard survives a save/load cycle?\",\"Should RoleStats.agents/runs be keyed by run-qualified ids (e.g. run-a/planning-architect-01) to avoid cross-run id collisions?\",\"Should the registry distinguish failed node attempts (which produce no ledger row) from invocations in the reported stats, or document the current asymmetry in the table header?\",\"Should ledgerToCsv gain an opt-in BOM and/or formula-injection guard if the export is ever handed to spreadsheet users rather than scripts?\"],\"files_changed\":[],\"need_context\":[]}",
+        "summary": "Reviewed src/registry.ts, src/ledger-csv.ts, src/cli.ts and both test files against the objective, cross-checking the registry's joins against the real artifact producers (orchestrator.ts:115/135/140/190/280, factory.ts:73-79) and LEDGER_COLUMNS against types.ts:297-328. All seven acceptance criteria are met: the four files exist, cli.ts wires `registry --runs <dir> [--out registry.json]`, 41/41 tests pass with no baseline test lost (23+6+12), and tsc --noEmit is clean under erasableSyntaxOnly/verbatimModuleSyntax. CSV quoting is RFC 4180-correct and proven round-trippable by the test's own parser oracle; the column list is complete, in declaration order, and guarded in both directions at compile time. Promotion stays advisory: the only write path in registry.ts is save() to the --out file, agents.json is never opened for writing, and candidates() is a pure derivation. Verdict pass, with four non-blocking findings.\nFindings:\n- VERIFIED: LEDGER_COLUMNS (src/ledger-csv.ts:8-39) contains exactly the 30 keys of ContextLedgerEntry (src/types.ts:297-328) in declaration order. `satisfies readonly (keyof ContextLedgerEntry)[]` rejects stale names and the _Missing/never guard (src/ledger-csv.ts:45-47) rejects added fields. A duplicated column would NOT be caught by the type system - only by the Set assertion in tests/ledger-csv.test.ts:52.\n- VERIFIED: csvEscape (src/ledger-csv.ts:50-55) quotes iff the field contains , \" LF or CR and doubles embedded quotes; tests/ledger-csv.test.ts:95-133 round-trips through an independent RFC 4180 reader, so the writer is checked against a parser rather than against literal strings.\n- VERIFIED: registry joins match the real producers. agents.json carries role/node_id/agent_id (src/orchestrator.ts:115, src/factory.ts:73-79); node.completed/node.failed carry node_id (src/orchestrator.ts:135,140); agent invocations produce one ledger row (src/orchestrator.ts:280) while deterministic nodes write agent_id 'test-runner' model 'none' (src/orchestrator.ts:190). Exclusion of deterministic rows in src/registry.ts:130-131 is therefore structural, not a heuristic.\n- VERIFIED: no mutation of run artifacts. The only writeFileSync in src/registry.ts is save() (line 220); candidates() (188-200) is a pure derivation carrying status:'candidate' and a reason ending in '(human approval required)'. Constraint 'never auto-promote' holds.\n- VERIFIED: findRunDirs (src/registry.ts:86-100) returns on the first agents.json without descending, so the workspace/agents.json decoy is unreachable via two independent mechanisms (early return plus SKIP_DIRS). Depth 3 from root covers runs/<exp>/<mode>. Nonexistent root returns [].\n- FINDING (latent, non-blocking): SpecialistRegistry.load (src/registry.ts:224-241) does not restore the private `ingested` set, and RoleStats.runs stores basenames rather than absolute paths, so a load-then-ingest of an already-counted run double-counts. No code path in the repo does this (the CLI at src/cli.ts:51-57 always builds a fresh registry), but the 'keeps accumulating after load' story is only safe for runs not already in the file.\n- FINDING (cosmetic): agent ids from factory.ts:75 are unique per process, not globally, so two separate runs can both contain 'planning-architect-01'. uniqSorted in finalize() (src/registry.ts:170) merges them, making RoleStats.agents an undercount of distinct agents. Invocations/costs are unaffected. Same basename-collision applies to RoleStats.runs and runs() for e.g. runs/expA/governed vs runs/expB/governed.\n- FINDING (semantic, worth documenting): a failed agent attempt throws before the ledger row is written (src/orchestrator.ts:229 vs 280) but still emits node.failed (line 140). So `invocations` counts successful invocations while success_rate's denominator counts all node attempts - a role with 3 successes and 2 failed attempts reports invocations=3 at 60% success. This is conservative and matches the objective's literal wording ('derived from node.completed vs node.failed'), but invocations != node attempts.\n- FINDING (encapsulation nit): roles() and candidates() return the internal RoleStats objects and share the `models` array reference (src/registry.ts:183-197); a caller mutating the result mutates registry state. Also table() spreads rows into Math.max (src/registry.ts:250), which would hit the argument limit at ~65k roles.\n- FINDING (minor, CSV): no BOM and no mitigation for spreadsheet formula injection (a field starting with = + - @ is emitted bare). Field values are generated ids/numbers today, so risk is low, but the export is not safe to open blindly in Excel.\n- SCOPE CHECK: the working-tree diff touches only src/cli.ts, src/ledger-csv.ts, src/registry.ts and the two new test files. src/types.ts, src/ledger.ts and src/orchestrator.ts are unmodified; cli.ts changes are confined to the import (line 11), one USAGE line (18), the `runs` parseArgs option (26) and the registry branch (51-57), plus one extra 'scanned N run directories' log beyond the plan (trivial).",
+        "structured": {
+          "summary": "Reviewed src/registry.ts, src/ledger-csv.ts, src/cli.ts and both test files against the objective, cross-checking the registry's joins against the real artifact producers (orchestrator.ts:115/135/140/190/280, factory.ts:73-79) and LEDGER_COLUMNS against types.ts:297-328. All seven acceptance criteria are met: the four files exist, cli.ts wires `registry --runs <dir> [--out registry.json]`, 41/41 tests pass with no baseline test lost (23+6+12), and tsc --noEmit is clean under erasableSyntaxOnly/verbatimModuleSyntax. CSV quoting is RFC 4180-correct and proven round-trippable by the test's own parser oracle; the column list is complete, in declaration order, and guarded in both directions at compile time. Promotion stays advisory: the only write path in registry.ts is save() to the --out file, agents.json is never opened for writing, and candidates() is a pure derivation. Verdict pass, with four non-blocking findings.",
+          "verdict": "pass",
+          "findings": [
+            "VERIFIED: LEDGER_COLUMNS (src/ledger-csv.ts:8-39) contains exactly the 30 keys of ContextLedgerEntry (src/types.ts:297-328) in declaration order. `satisfies readonly (keyof ContextLedgerEntry)[]` rejects stale names and the _Missing/never guard (src/ledger-csv.ts:45-47) rejects added fields. A duplicated column would NOT be caught by the type system - only by the Set assertion in tests/ledger-csv.test.ts:52.",
+            "VERIFIED: csvEscape (src/ledger-csv.ts:50-55) quotes iff the field contains , \" LF or CR and doubles embedded quotes; tests/ledger-csv.test.ts:95-133 round-trips through an independent RFC 4180 reader, so the writer is checked against a parser rather than against literal strings.",
+            "VERIFIED: registry joins match the real producers. agents.json carries role/node_id/agent_id (src/orchestrator.ts:115, src/factory.ts:73-79); node.completed/node.failed carry node_id (src/orchestrator.ts:135,140); agent invocations produce one ledger row (src/orchestrator.ts:280) while deterministic nodes write agent_id 'test-runner' model 'none' (src/orchestrator.ts:190). Exclusion of deterministic rows in src/registry.ts:130-131 is therefore structural, not a heuristic.",
+            "VERIFIED: no mutation of run artifacts. The only writeFileSync in src/registry.ts is save() (line 220); candidates() (188-200) is a pure derivation carrying status:'candidate' and a reason ending in '(human approval required)'. Constraint 'never auto-promote' holds.",
+            "VERIFIED: findRunDirs (src/registry.ts:86-100) returns on the first agents.json without descending, so the workspace/agents.json decoy is unreachable via two independent mechanisms (early return plus SKIP_DIRS). Depth 3 from root covers runs/<exp>/<mode>. Nonexistent root returns [].",
+            "FINDING (latent, non-blocking): SpecialistRegistry.load (src/registry.ts:224-241) does not restore the private `ingested` set, and RoleStats.runs stores basenames rather than absolute paths, so a load-then-ingest of an already-counted run double-counts. No code path in the repo does this (the CLI at src/cli.ts:51-57 always builds a fresh registry), but the 'keeps accumulating after load' story is only safe for runs not already in the file.",
+            "FINDING (cosmetic): agent ids from factory.ts:75 are unique per process, not globally, so two separate runs can both contain 'planning-architect-01'. uniqSorted in finalize() (src/registry.ts:170) merges them, making RoleStats.agents an undercount of distinct agents. Invocations/costs are unaffected. Same basename-collision applies to RoleStats.runs and runs() for e.g. runs/expA/governed vs runs/expB/governed.",
+            "FINDING (semantic, worth documenting): a failed agent attempt throws before the ledger row is written (src/orchestrator.ts:229 vs 280) but still emits node.failed (line 140). So `invocations` counts successful invocations while success_rate's denominator counts all node attempts - a role with 3 successes and 2 failed attempts reports invocations=3 at 60% success. This is conservative and matches the objective's literal wording ('derived from node.completed vs node.failed'), but invocations != node attempts.",
+            "FINDING (encapsulation nit): roles() and candidates() return the internal RoleStats objects and share the `models` array reference (src/registry.ts:183-197); a caller mutating the result mutates registry state. Also table() spreads rows into Math.max (src/registry.ts:250), which would hit the argument limit at ~65k roles.",
+            "FINDING (minor, CSV): no BOM and no mitigation for spreadsheet formula injection (a field starting with = + - @ is emitted bare). Field values are generated ids/numbers today, so risk is low, but the export is not safe to open blindly in Excel.",
+            "SCOPE CHECK: the working-tree diff touches only src/cli.ts, src/ledger-csv.ts, src/registry.ts and the two new test files. src/types.ts, src/ledger.ts and src/orchestrator.ts are unmodified; cli.ts changes are confined to the import (line 11), one USAGE line (18), the `runs` parseArgs option (26) and the registry branch (51-57), plus one extra 'scanned N run directories' log beyond the plan (trivial)."
+          ],
+          "decisions": [
+            "Verdict pass: all seven acceptance criteria confirmed by reading the files and the reported command output (41/41 tests, tsc exit 0); no correctness bug found that affects specified behaviour.",
+            "The four findings above are recorded as follow-up items, not blockers: none of them changes the output of any acceptance-criteria command or violates a stated constraint."
+          ],
+          "assumptions": [
+            "I have read-only authority and could not execute commands, so the exit codes for `node --test tests/*.test.ts` and `npx tsc --noEmit -p tsconfig.json` are taken from the packet's test output; I confirmed the source contains nothing that would obviously break either (no enums, no parameter properties, import type only, `let entries;` is a legal evolving-any, and noUncheckedIndexedAccess is off in tsconfig.json).",
+            "Test counts reconcile (23 baseline + 6 ledger-csv + 12 registry = 41), which I take as evidence no pre-existing test was deleted or weakened; I did not diff the untouched test files."
+          ],
+          "questions": [
+            "Should SpecialistRegistry.load persist absolute run paths (or a run fingerprint) so the ingest-idempotency guard survives a save/load cycle?",
+            "Should RoleStats.agents/runs be keyed by run-qualified ids (e.g. run-a/planning-architect-01) to avoid cross-run id collisions?",
+            "Should the registry distinguish failed node attempts (which produce no ledger row) from invocations in the reported stats, or document the current asymmetry in the table header?",
+            "Should ledgerToCsv gain an opt-in BOM and/or formula-injection guard if the export is ever handed to spreadsheet users rather than scripts?"
+          ],
+          "files_changed": [],
+          "need_context": []
+        },
+        "history_ref": "h6",
+        "verdict": "pass",
+        "files_changed": []
+      }
+    },
+    {
+      "dependencies": [
+        "review"
+      ],
+      "required_capabilities": [],
+      "required_context": [],
+      "allowed_tools": [],
+      "acceptance_criteria": [],
+      "budget": {},
+      "status": "succeeded",
+      "inputs": {},
+      "state_changes": [
+        "s76"
+      ],
+      "retry_policy": {
+        "max_retries": 0,
+        "on_exhausted": "fail"
+      },
+      "complexity": "low",
+      "reasoning": "low",
+      "attempts": 1,
+      "iteration": 1,
+      "node_id": "human_gate",
+      "objective": "Human approval of the reviewed change",
+      "node_type": "human_gate",
+      "deterministic": true,
+      "execution_order": 6,
+      "outputs": {
+        "text": "human gate: pass (auto_approve=true, last review=pass)",
+        "summary": "human gate pass",
+        "history_ref": "",
+        "verdict": "pass"
+      }
+    }
+  ],
+  "replans": []
+}

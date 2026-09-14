@@ -1,0 +1,95 @@
+{
+  "workflow_id": "exp001-registry-run2-governed",
+  "mode": "governed",
+  "governance": "full",
+  "task_id": "exp001-registry",
+  "runtime": "claude-cli",
+  "status": "completed",
+  "lifecycle_input_tokens": 84,
+  "lifecycle_output_tokens": 53283,
+  "lifecycle_cache_read_tokens": 1310713,
+  "lifecycle_cache_write_tokens": 154890,
+  "total_model_tokens": 1518970,
+  "peak_active_context": 57708,
+  "avg_active_context": 34089,
+  "cumulative_context_injected": 26507,
+  "cumulative_context_avoided": 11256,
+  "hsc_overhead_tokens": 13285,
+  "retrieval_overhead_tokens": 0,
+  "compaction_overhead_tokens": 6106,
+  "estimated_cost_usd": 3.5726675,
+  "cost_estimated": true,
+  "agent_calls": 4,
+  "retrievals": 0,
+  "compactions": 5,
+  "elapsed_ms": 539590,
+  "graph_nodes": 6,
+  "loops": 0,
+  "retries": 0,
+  "replans": 0,
+  "evaluation": {
+    "workflow_id": "exp001-registry-run2-governed",
+    "mode": "governed",
+    "criteria": [
+      {
+        "criterion": "file exists: src/registry.ts",
+        "passed": true
+      },
+      {
+        "criterion": "file exists: src/ledger-csv.ts",
+        "passed": true
+      },
+      {
+        "criterion": "file exists: tests/registry.test.ts",
+        "passed": true
+      },
+      {
+        "criterion": "file exists: tests/ledger-csv.test.ts",
+        "passed": true
+      },
+      {
+        "criterion": "src/cli.ts matches /registry/",
+        "passed": true
+      },
+      {
+        "criterion": "all tests pass (existing + new)",
+        "passed": true,
+        "detail": "exit 0, pass 41 fail 0"
+      },
+      {
+        "criterion": "repo typechecks",
+        "passed": true,
+        "detail": "exit 0"
+      }
+    ],
+    "criteria_passed": 7,
+    "criteria_total": 7,
+    "tests_passed": 41,
+    "tests_failed": 0,
+    "errors": [],
+    "review_findings": 0,
+    "retries": 0,
+    "blind_review": {
+      "score": 8.3,
+      "findings": [
+        "Both required files (src/registry.ts, src/ledger-csv.ts) and both test files exist, matching acceptance-criteria file-exists checks.",
+        "CLI wiring for `registry --runs <dir> [--out registry.json]` is implemented cleanly, reuses SpecialistRegistry.findRunDirs and prints reg.table(); USAGE string updated. Matches spec.",
+        "SpecialistRegistry correctly derives success rate strictly from node.completed vs node.failed trace events joined by node_id, and invocation/cost/token stats from ledger rows joined by agent_id — matches the spec's join semantics.",
+        "Promotion thresholds (>=3 invocations, >=0.8 success rate) are implemented as static constants and used consistently in candidates(); there is no code path that writes back to agents.json or mutates agent definitions — satisfies the 'suggestions only, never auto-promote' constraint.",
+        "save()/load() round-trip is implemented and tested, including continuing to ingest more runs after a load — good coverage of a tricky feature.",
+        "Idempotent ingestion (ingestedSet keyed by resolved path) prevents double-counting when the same run directory is ingested twice; covered by a dedicated test.",
+        "findRunDirs correctly stops descending once it finds agents.json in a directory (avoiding false positives from nested workspace/agents.json), which is tested directly.",
+        "ledger-csv.ts uses a `satisfies readonly (keyof ContextLedgerEntry)[]` constraint plus a compile-time `Exclude<...> -> never` check to guard that LEDGER_COLUMNS exactly matches the ContextLedgerEntry key set in both directions (no missing, no extra keys) — a nice defensive compile-time guard given the 'additive exports only' constraint on types.ts.",
+        "csvEscape correctly implements RFC 4180 quoting for commas, quotes, and newlines/CRLF, doubling embedded quotes; tests include a round-trip through a hand-rolled minimal CSV parser, which is a strong verification approach beyond simple string matching.",
+        "Minor fragility: the ledger-csv test asserting 'header covers every ContextLedgerEntry key exactly once, in declaration order' depends on the fixture object literal's key order matching the real interface's declaration order in types.ts, which isn't visible in this diff — if wrong, both the constant and the test would be self-consistently wrong without being caught.",
+        "Minor semantic inconsistency: RoleStats.runs is populated both from agents.json entries (every run where the role appears, regardless of actual invocations) and from ledger rows, meaning 'runs' can include runs with zero recorded invocations for that role — not harmful to correctness of success_rate/candidates, but slightly blurs the meaning of the 'runs' field.",
+        "roleByNode is a last-write-wins map keyed by node_id; if a workflow ever reused the same node_id for agents of different roles across attempts, trace-based success attribution could mis-assign — unlikely given typical orchestrator semantics but not defensively guarded or commented on.",
+        "Test suite is notably thorough: covers aggregation math, threshold edge cases (exactly-2 invocations, 50% success with many invocations), malformed JSONL tolerance, missing agents.json error path, table rendering, and an end-to-end integration test against a real Orchestrator run — good test quality and confidence.",
+        "Cannot directly execute `node --test` or `tsc --noEmit` in this review to empirically confirm the acceptance-criteria commands pass; assessment is based on careful static reading of the diff only.",
+        "Code style is consistent with described constraints (erasable-syntax TypeScript, no enums/parameter properties, no new dependencies, Node built-ins only) and diffs appear minimal/additive as required."
+      ],
+      "model": "claude-haiku-4-5-20251001",
+      "label": "B"
+    }
+  }
+}

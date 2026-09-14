@@ -1,4 +1,4 @@
-import { appendFileSync, mkdirSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 import type { ContextLedgerEntry, WorkflowSummary } from "./types.ts";
 
@@ -6,7 +6,10 @@ import type { ContextLedgerEntry, WorkflowSummary } from "./types.ts";
 export class ContextLedger {
   readonly entries: ContextLedgerEntry[] = [];
   readonly file: string;
-  constructor(file: string) { this.file = file; mkdirSync(dirname(file), { recursive: true }); }
+  constructor(file: string) {
+    this.file = file; mkdirSync(dirname(file), { recursive: true });
+    if (existsSync(file)) for (const l of readFileSync(file, "utf8").split("\n").filter(Boolean)) this.entries.push(JSON.parse(l));
+  }
 
   record(e: ContextLedgerEntry): void {
     this.entries.push(e);

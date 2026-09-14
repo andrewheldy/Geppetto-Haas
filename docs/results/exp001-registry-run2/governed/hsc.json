@@ -1,0 +1,1775 @@
+{
+  "workflow_id": "exp001-registry-run2-governed",
+  "version": 157,
+  "objective": "Extend Geppetto with two independent pieces of telemetry tooling. (A) A specialist promotion registry: src/registry.ts exporting a SpecialistRegistry class that ingests one or more run directories (each containing agents.json, ledger.jsonl and trace.jsonl as produced by src/orchestrator.ts), aggregates per-role statistics (number of invocations, node success rate derived from node.completed vs node.failed trace events, mean cost, mean input and output tokens, models used) and suggests promotion candidates (roles with at least 3 invocations and success rate >= 0.8) with a human-readable reason; it must be able to save/load registry.json and must never auto-promote (candidates only). Wire a `registry --runs <dir> [--out registry.json]` command into src/cli.ts that scans every subdirectory containing agents.json and prints a table. (B) A CSV exporter: src/ledger-csv.ts exporting ledgerToCsv(rows: ContextLedgerEntry[]): string that writes a header row from the ContextLedgerEntry keys and escapes commas, quotes and newlines correctly. Both parts need tests in tests/registry.test.ts and tests/ledger-csv.test.ts using node:test, and the whole repo must still typecheck.",
+  "entries": [
+    {
+      "id": "s1",
+      "kind": "objective",
+      "content": "Extend Geppetto with two independent pieces of telemetry tooling. (A) A specialist promotion registry: src/registry.ts exporting a SpecialistRegistry class that ingests one or more run directories (each containing agents.json, ledger.jsonl and trace.jsonl as produced by src/orchestrator.ts), aggregates per-role statistics (number of invocations, node success rate derived from node.completed vs node.failed trace events, mean cost, mean input and output tokens, models used) and suggests promotion candidates (roles with at least 3 invocations and success rate >= 0.8) with a human-readable reason; it must be able to save/load registry.json and must never auto-promote (candidates only). Wire a `registry --runs <dir> [--out registry.json]` command into src/cli.ts that scans every subdirectory containing agents.json and prints a table. (B) A CSV exporter: src/ledger-csv.ts exporting ledgerToCsv(rows: ContextLedgerEntry[]): string that writes a header row from the ContextLedgerEntry keys and escapes commas, quotes and newlines correctly. Both parts need tests in tests/registry.test.ts and tests/ledger-csv.test.ts using node:test, and the whole repo must still typecheck.",
+      "status": "accepted",
+      "confidence": 1,
+      "ttl": "durable",
+      "tags": [
+        "task"
+      ],
+      "provenance": {
+        "producer": "user",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [],
+        "created_at": "2026-09-13T05:59:47.846Z",
+        "updated_at": "2026-09-13T05:59:47.846Z",
+        "produced_at_node_index": 0
+      }
+    },
+    {
+      "id": "s2",
+      "kind": "constraint",
+      "content": "No new runtime dependencies; Node 24 built-ins only.",
+      "status": "accepted",
+      "confidence": 1,
+      "ttl": "durable",
+      "tags": [
+        "task"
+      ],
+      "provenance": {
+        "producer": "user",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [],
+        "created_at": "2026-09-13T05:59:47.846Z",
+        "updated_at": "2026-09-13T05:59:47.846Z",
+        "produced_at_node_index": 0
+      }
+    },
+    {
+      "id": "s3",
+      "kind": "constraint",
+      "content": "TypeScript must be erasable-syntax only (no enums, no parameter properties); the repo runs .ts files directly with node.",
+      "status": "accepted",
+      "confidence": 1,
+      "ttl": "durable",
+      "tags": [
+        "task"
+      ],
+      "provenance": {
+        "producer": "user",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [],
+        "created_at": "2026-09-13T05:59:47.846Z",
+        "updated_at": "2026-09-13T05:59:47.846Z",
+        "produced_at_node_index": 0
+      }
+    },
+    {
+      "id": "s4",
+      "kind": "constraint",
+      "content": "Do not modify existing behaviour of src/orchestrator.ts, src/ledger.ts or src/types.ts beyond additive exports.",
+      "status": "accepted",
+      "confidence": 1,
+      "ttl": "durable",
+      "tags": [
+        "task"
+      ],
+      "provenance": {
+        "producer": "user",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [],
+        "created_at": "2026-09-13T05:59:47.846Z",
+        "updated_at": "2026-09-13T05:59:47.846Z",
+        "produced_at_node_index": 0
+      }
+    },
+    {
+      "id": "s5",
+      "kind": "constraint",
+      "content": "Keep diffs minimal; no unrelated refactors.",
+      "status": "accepted",
+      "confidence": 1,
+      "ttl": "durable",
+      "tags": [
+        "task"
+      ],
+      "provenance": {
+        "producer": "user",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [],
+        "created_at": "2026-09-13T05:59:47.846Z",
+        "updated_at": "2026-09-13T05:59:47.846Z",
+        "produced_at_node_index": 0
+      }
+    },
+    {
+      "id": "s6",
+      "kind": "constraint",
+      "content": "Promotion of a specialist is a suggestion only; never mutate agent definitions.",
+      "status": "accepted",
+      "confidence": 1,
+      "ttl": "durable",
+      "tags": [
+        "task"
+      ],
+      "provenance": {
+        "producer": "user",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [],
+        "created_at": "2026-09-13T05:59:47.846Z",
+        "updated_at": "2026-09-13T05:59:47.846Z",
+        "produced_at_node_index": 0
+      }
+    },
+    {
+      "id": "s7",
+      "kind": "constraint",
+      "content": "Acceptance: file exists: src/registry.ts",
+      "status": "accepted",
+      "confidence": 1,
+      "ttl": "durable",
+      "tags": [
+        "task",
+        "acceptance"
+      ],
+      "provenance": {
+        "producer": "user",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [],
+        "created_at": "2026-09-13T05:59:47.846Z",
+        "updated_at": "2026-09-13T05:59:47.846Z",
+        "produced_at_node_index": 0
+      }
+    },
+    {
+      "id": "s8",
+      "kind": "constraint",
+      "content": "Acceptance: file exists: src/ledger-csv.ts",
+      "status": "accepted",
+      "confidence": 1,
+      "ttl": "durable",
+      "tags": [
+        "task",
+        "acceptance"
+      ],
+      "provenance": {
+        "producer": "user",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [],
+        "created_at": "2026-09-13T05:59:47.846Z",
+        "updated_at": "2026-09-13T05:59:47.846Z",
+        "produced_at_node_index": 0
+      }
+    },
+    {
+      "id": "s9",
+      "kind": "constraint",
+      "content": "Acceptance: file exists: tests/registry.test.ts",
+      "status": "accepted",
+      "confidence": 1,
+      "ttl": "durable",
+      "tags": [
+        "task",
+        "acceptance"
+      ],
+      "provenance": {
+        "producer": "user",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [],
+        "created_at": "2026-09-13T05:59:47.846Z",
+        "updated_at": "2026-09-13T05:59:47.846Z",
+        "produced_at_node_index": 0
+      }
+    },
+    {
+      "id": "s10",
+      "kind": "constraint",
+      "content": "Acceptance: file exists: tests/ledger-csv.test.ts",
+      "status": "accepted",
+      "confidence": 1,
+      "ttl": "durable",
+      "tags": [
+        "task",
+        "acceptance"
+      ],
+      "provenance": {
+        "producer": "user",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [],
+        "created_at": "2026-09-13T05:59:47.846Z",
+        "updated_at": "2026-09-13T05:59:47.846Z",
+        "produced_at_node_index": 0
+      }
+    },
+    {
+      "id": "s11",
+      "kind": "constraint",
+      "content": "Acceptance: src/cli.ts contains /registry/",
+      "status": "accepted",
+      "confidence": 1,
+      "ttl": "durable",
+      "tags": [
+        "task",
+        "acceptance"
+      ],
+      "provenance": {
+        "producer": "user",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [],
+        "created_at": "2026-09-13T05:59:47.846Z",
+        "updated_at": "2026-09-13T05:59:47.846Z",
+        "produced_at_node_index": 0
+      }
+    },
+    {
+      "id": "s12",
+      "kind": "constraint",
+      "content": "Acceptance: command passes: node --test tests/*.test.ts",
+      "status": "accepted",
+      "confidence": 1,
+      "ttl": "durable",
+      "tags": [
+        "task",
+        "acceptance"
+      ],
+      "provenance": {
+        "producer": "user",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [],
+        "created_at": "2026-09-13T05:59:47.846Z",
+        "updated_at": "2026-09-13T05:59:47.846Z",
+        "produced_at_node_index": 0
+      }
+    },
+    {
+      "id": "s13",
+      "kind": "constraint",
+      "content": "Acceptance: command passes: npx tsc --noEmit -p tsconfig.json",
+      "status": "accepted",
+      "confidence": 1,
+      "ttl": "durable",
+      "tags": [
+        "task",
+        "acceptance"
+      ],
+      "provenance": {
+        "producer": "user",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [],
+        "created_at": "2026-09-13T05:59:47.846Z",
+        "updated_at": "2026-09-13T05:59:47.846Z",
+        "produced_at_node_index": 0
+      }
+    },
+    {
+      "id": "s14",
+      "kind": "decision",
+      "content": "Create src/ledger-csv.ts exporting `LEDGER_COLUMNS` (readonly ordered tuple of the 32 ContextLedgerEntry keys), `csvEscape(v: unknown): string` (internal or exported) and `ledgerToCsv(rows: ContextLedgerEntry[]): string`. Add a compile-time guard `type _Missing = Exclude<keyof ContextLedgerEntry, typeof LEDGER_COLUMNS[number]>; const _check: never = undefined as unknown as _Missing;` so a future field added to the interface breaks typecheck instead of silently dropping a column.",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "durable",
+      "tags": [
+        "plan",
+        "plan"
+      ],
+      "provenance": {
+        "producer": "planning-architect-01",
+        "node_id": "plan",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h1"
+        ],
+        "created_at": "2026-09-13T06:01:27.766Z",
+        "updated_at": "2026-09-13T06:01:27.768Z",
+        "produced_at_node_index": 0
+      },
+      "status_reason": "validated at plan"
+    },
+    {
+      "id": "s15",
+      "kind": "decision",
+      "content": "CSV rules: quote a field iff it contains ',' '\"' '\\n' or '\\r'; escape embedded quotes by doubling; numbers via String(), booleans as true/false, null/undefined as empty; rows joined with '\\n' and NO trailing newline (header-only output === LEDGER_COLUMNS.join(',')).",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "durable",
+      "tags": [
+        "plan",
+        "plan"
+      ],
+      "provenance": {
+        "producer": "planning-architect-01",
+        "node_id": "plan",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h1"
+        ],
+        "created_at": "2026-09-13T06:01:27.767Z",
+        "updated_at": "2026-09-13T06:01:27.768Z",
+        "produced_at_node_index": 0
+      },
+      "status_reason": "validated at plan"
+    },
+    {
+      "id": "s16",
+      "kind": "decision",
+      "content": "Create src/registry.ts exporting interfaces `RoleStats`, `PromotionCandidate`, `RegistryFile` and class `SpecialistRegistry` with: `ingestRun(dir: string): void`, `ingestRuns(dirs: string[]): void`, `static findRunDirs(root: string): string[]`, `roles(): RoleStats[]`, `candidates(): PromotionCandidate[]`, `toJSON(): RegistryFile`, `save(file: string): void`, `static load(file: string): SpecialistRegistry`, `table(): string`. Thresholds as static readonly fields MIN_INVOCATIONS = 3, MIN_SUCCESS_RATE = 0.8.",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "durable",
+      "tags": [
+        "plan",
+        "plan"
+      ],
+      "provenance": {
+        "producer": "planning-architect-01",
+        "node_id": "plan",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h1"
+        ],
+        "created_at": "2026-09-13T06:01:27.767Z",
+        "updated_at": "2026-09-13T06:01:27.768Z",
+        "produced_at_node_index": 0
+      },
+      "status_reason": "validated at plan"
+    },
+    {
+      "id": "s17",
+      "kind": "decision",
+      "content": "RoleStats shape: { role, invocations, agents (distinct agent_ids), runs (run dir basenames), nodes_completed, nodes_failed, success_rate, total_cost_usd, total_input_tokens, total_output_tokens, mean_cost_usd, mean_input_tokens, mean_output_tokens, models[] }. Totals are persisted alongside means so save/load is lossless and further ingestRun() calls can keep accumulating after a load.",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "durable",
+      "tags": [
+        "plan",
+        "plan"
+      ],
+      "provenance": {
+        "producer": "planning-architect-01",
+        "node_id": "plan",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h1"
+        ],
+        "created_at": "2026-09-13T06:01:27.767Z",
+        "updated_at": "2026-09-13T06:01:27.768Z",
+        "produced_at_node_index": 0
+      },
+      "status_reason": "validated at plan"
+    },
+    {
+      "id": "s18",
+      "kind": "decision",
+      "content": "Aggregation semantics: invocations = ledger rows whose agent_id resolves to a role (excludes deterministic rows); success_rate = nodes_completed / (nodes_completed + nodes_failed), 0 when the denominator is 0; models = sorted unique ledger `model` values excluding 'none'; means = totals / invocations, 0 when invocations is 0.",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "durable",
+      "tags": [
+        "plan",
+        "plan"
+      ],
+      "provenance": {
+        "producer": "planning-architect-01",
+        "node_id": "plan",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h1"
+        ],
+        "created_at": "2026-09-13T06:01:27.767Z",
+        "updated_at": "2026-09-13T06:01:27.768Z",
+        "produced_at_node_index": 0
+      },
+      "status_reason": "validated at plan"
+    },
+    {
+      "id": "s19",
+      "kind": "decision",
+      "content": "Promotion is suggestion-only: candidates() is a pure derivation (invocations >= 3 && success_rate >= 0.8), each candidate carries `status: 'candidate'` and a human-readable `reason` e.g. \"Planning Architect: 4 invocations, 100% node success (4/4), mean $0.0123 / 1,200 in / 300 out tokens on haiku - suggest registering as a reusable specialist (human approval required).\" No API mutates agents.json or AgentDefinition; the registry only reads files.",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "durable",
+      "tags": [
+        "plan",
+        "plan"
+      ],
+      "provenance": {
+        "producer": "planning-architect-01",
+        "node_id": "plan",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h1"
+        ],
+        "created_at": "2026-09-13T06:01:27.767Z",
+        "updated_at": "2026-09-13T06:01:27.768Z",
+        "produced_at_node_index": 0
+      },
+      "status_reason": "validated at plan"
+    },
+    {
+      "id": "s20",
+      "kind": "decision",
+      "content": "findRunDirs(root): read root's entries; if root itself contains agents.json include it; otherwise recurse one to two levels (enough for runs/<exp-id>/<mode>) collecting every directory that contains agents.json, sorted, skipping node_modules/.git/workspace/invocations. ingestRun throws on missing agents.json; missing or malformed ledger.jsonl / trace.jsonl are tolerated as empty (JSONL parsed line-by-line, blank lines skipped).",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "durable",
+      "tags": [
+        "plan",
+        "plan"
+      ],
+      "provenance": {
+        "producer": "planning-architect-01",
+        "node_id": "plan",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h1"
+        ],
+        "created_at": "2026-09-13T06:01:27.767Z",
+        "updated_at": "2026-09-13T06:01:27.768Z",
+        "produced_at_node_index": 0
+      },
+      "status_reason": "validated at plan"
+    },
+    {
+      "id": "s21",
+      "kind": "decision",
+      "content": "CLI: add `runs: { type: \"string\" }` to the existing parseArgs options, a `registry` branch (`registry --runs <dir> [--out registry.json]`) that does SpecialistRegistry.findRunDirs(resolve(v.runs!)) -> ingestRuns -> console.log(reg.table()) -> reg.save(resolve(v.out)) only when --out is given, plus one USAGE line. Nothing else in cli.ts changes.",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "durable",
+      "tags": [
+        "plan",
+        "plan"
+      ],
+      "provenance": {
+        "producer": "planning-architect-01",
+        "node_id": "plan",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h1"
+        ],
+        "created_at": "2026-09-13T06:01:27.767Z",
+        "updated_at": "2026-09-13T06:01:27.768Z",
+        "produced_at_node_index": 0
+      },
+      "status_reason": "validated at plan"
+    },
+    {
+      "id": "s22",
+      "kind": "decision",
+      "content": "table() renders a dependency-free fixed-width ASCII table (columns: role, invocations, success, mean $, mean in, mean out, models) followed by a 'Promotion candidates (suggestions only)' section; column widths computed from content.",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "durable",
+      "tags": [
+        "plan",
+        "plan"
+      ],
+      "provenance": {
+        "producer": "planning-architect-01",
+        "node_id": "plan",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h1"
+        ],
+        "created_at": "2026-09-13T06:01:27.767Z",
+        "updated_at": "2026-09-13T06:01:27.768Z",
+        "produced_at_node_index": 0
+      },
+      "status_reason": "validated at plan"
+    },
+    {
+      "id": "s23",
+      "kind": "decision",
+      "content": "Tests: tests/ledger-csv.test.ts (header order/completeness, value ordering against a synthetic full entry, comma/quote/newline escaping, booleans+numbers, empty input = header only) and tests/registry.test.ts (fixture run dirs written to tmp(); multi-run aggregation, success rate from node.completed vs node.failed, candidate thresholds incl. 2-invocation and 0.5-success negatives, reason text, save/load round-trip deep-equality, agents.json byte-identical after ingest, findRunDirs skipping non-run dirs, plus one integration test that runs Orchestrator with MockRuntime and ingests its real out_dir).",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "durable",
+      "tags": [
+        "plan",
+        "plan"
+      ],
+      "provenance": {
+        "producer": "planning-architect-01",
+        "node_id": "plan",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h1"
+        ],
+        "created_at": "2026-09-13T06:01:27.767Z",
+        "updated_at": "2026-09-13T06:01:27.768Z",
+        "produced_at_node_index": 0
+      },
+      "status_reason": "validated at plan"
+    },
+    {
+      "id": "s24",
+      "kind": "assumption",
+      "content": "ContextLedgerEntry stays flat (all primitive fields); if a nested field is ever added, ledgerToCsv would need a JSON.stringify fallback (the planned `csvEscape(v: unknown)` already degrades gracefully via String()).",
+      "status": "stale",
+      "confidence": 0.6,
+      "ttl": "volatile",
+      "tags": [
+        "plan",
+        "plan"
+      ],
+      "provenance": {
+        "producer": "planning-architect-01",
+        "node_id": "plan",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h1"
+        ],
+        "created_at": "2026-09-13T06:01:27.767Z",
+        "updated_at": "2026-09-13T06:05:25.212Z",
+        "produced_at_node_index": 0
+      },
+      "status_reason": "decayed after 4 nodes (volatile)"
+    },
+    {
+      "id": "s25",
+      "kind": "assumption",
+      "content": "Role is stable per node_type (factory.ts ROLE map), so node_id -> role from agents.json has no conflicts; if two roles ever shared a node_id the last one in agents.json wins.",
+      "status": "stale",
+      "confidence": 0.6,
+      "ttl": "volatile",
+      "tags": [
+        "plan",
+        "plan"
+      ],
+      "provenance": {
+        "producer": "planning-architect-01",
+        "node_id": "plan",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h1"
+        ],
+        "created_at": "2026-09-13T06:01:27.767Z",
+        "updated_at": "2026-09-13T06:05:25.212Z",
+        "produced_at_node_index": 0
+      },
+      "status_reason": "decayed after 4 nodes (volatile)"
+    },
+    {
+      "id": "s26",
+      "kind": "assumption",
+      "content": "Control-mode run dirs contain no agents.json and are therefore correctly skipped by findRunDirs.",
+      "status": "stale",
+      "confidence": 0.6,
+      "ttl": "volatile",
+      "tags": [
+        "plan",
+        "plan"
+      ],
+      "provenance": {
+        "producer": "planning-architect-01",
+        "node_id": "plan",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h1"
+        ],
+        "created_at": "2026-09-13T06:01:27.767Z",
+        "updated_at": "2026-09-13T06:05:25.212Z",
+        "produced_at_node_index": 0
+      },
+      "status_reason": "decayed after 4 nodes (volatile)"
+    },
+    {
+      "id": "s27",
+      "kind": "assumption",
+      "content": "Run directory layout under --runs is at most two levels deep (runs/<experiment-id>/<mode>); deeper nesting would need the recursion depth bumped.",
+      "status": "stale",
+      "confidence": 0.6,
+      "ttl": "volatile",
+      "tags": [
+        "plan",
+        "plan"
+      ],
+      "provenance": {
+        "producer": "planning-architect-01",
+        "node_id": "plan",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h1"
+        ],
+        "created_at": "2026-09-13T06:01:27.767Z",
+        "updated_at": "2026-09-13T06:05:25.212Z",
+        "produced_at_node_index": 0
+      },
+      "status_reason": "decayed after 4 nodes (volatile)"
+    },
+    {
+      "id": "s28",
+      "kind": "assumption",
+      "content": "npx tsc --noEmit and node --test tests/*.test.ts are already green on the current tree, so the only new typecheck risk is the two new modules and their tests.",
+      "status": "stale",
+      "confidence": 0.6,
+      "ttl": "volatile",
+      "tags": [
+        "plan",
+        "plan"
+      ],
+      "provenance": {
+        "producer": "planning-architect-01",
+        "node_id": "plan",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h1"
+        ],
+        "created_at": "2026-09-13T06:01:27.767Z",
+        "updated_at": "2026-09-13T06:05:25.212Z",
+        "produced_at_node_index": 0
+      },
+      "status_reason": "decayed after 4 nodes (volatile)"
+    },
+    {
+      "id": "s29",
+      "kind": "question",
+      "content": "Should `registry --runs` default to writing registry.json when --out is omitted? Plan assumes print-only unless --out is given.",
+      "status": "stale",
+      "confidence": 0.6,
+      "ttl": "volatile",
+      "tags": [
+        "plan",
+        "plan"
+      ],
+      "provenance": {
+        "producer": "planning-architect-01",
+        "node_id": "plan",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h1"
+        ],
+        "created_at": "2026-09-13T06:01:27.767Z",
+        "updated_at": "2026-09-13T06:05:25.212Z",
+        "produced_at_node_index": 0
+      },
+      "status_reason": "decayed after 4 nodes (volatile)"
+    },
+    {
+      "id": "s30",
+      "kind": "question",
+      "content": "Should the CSV exporter also be surfaced as a CLI flag (e.g. `report --csv`)? Objective does not ask for it, so plan leaves it library-only to keep the diff minimal.",
+      "status": "stale",
+      "confidence": 0.6,
+      "ttl": "volatile",
+      "tags": [
+        "plan",
+        "plan"
+      ],
+      "provenance": {
+        "producer": "planning-architect-01",
+        "node_id": "plan",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h1"
+        ],
+        "created_at": "2026-09-13T06:01:27.767Z",
+        "updated_at": "2026-09-13T06:05:25.212Z",
+        "produced_at_node_index": 0
+      },
+      "status_reason": "decayed after 4 nodes (volatile)"
+    },
+    {
+      "id": "s31",
+      "kind": "question",
+      "content": "Is a trailing newline expected at the end of ledgerToCsv output? Plan chooses no trailing newline for testability.",
+      "status": "stale",
+      "confidence": 0.6,
+      "ttl": "volatile",
+      "tags": [
+        "plan",
+        "plan"
+      ],
+      "provenance": {
+        "producer": "planning-architect-01",
+        "node_id": "plan",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h1"
+        ],
+        "created_at": "2026-09-13T06:01:27.767Z",
+        "updated_at": "2026-09-13T06:05:25.212Z",
+        "produced_at_node_index": 0
+      },
+      "status_reason": "decayed after 4 nodes (volatile)"
+    },
+    {
+      "id": "s32",
+      "kind": "completed_action",
+      "content": "plan: Read src/orchestrator.ts (artifact formats for agents.json/ledger.jsonl/trace.jsonl), src/types.ts (ContextLedgerEntry, AgentDefinition), src/factory.ts (role naming), src/cli.ts, src/experiment.ts and the existing node:test suite to ground the design. Plan: two new standalone modules (src/registry.",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "session",
+      "tags": [
+        "plan",
+        "plan"
+      ],
+      "provenance": {
+        "producer": "planning-architect-01",
+        "node_id": "plan",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h1"
+        ],
+        "created_at": "2026-09-13T06:01:27.767Z",
+        "updated_at": "2026-09-13T06:01:27.768Z",
+        "produced_at_node_index": 0
+      },
+      "status_reason": "validated at plan"
+    },
+    {
+      "id": "s33",
+      "kind": "decision",
+      "content": "Column order is the declaration order of ContextLedgerEntry in src/types.ts (30 columns), keeping CSV diffs stable across runs.",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "durable",
+      "tags": [
+        "implement:ledger-csv",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-03",
+        "node_id": "implement:ledger-csv",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h2"
+        ],
+        "created_at": "2026-09-13T06:03:17.869Z",
+        "updated_at": "2026-09-13T06:03:17.889Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "validated at implement:ledger-csv"
+    },
+    {
+      "id": "s34",
+      "kind": "decision",
+      "content": "Kept the accepted `const _check: never` guard form rather than a purely type-level assertion, and added `void _check;` so the binding is unambiguously used; runtime cost is one erased-type const.",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "durable",
+      "tags": [
+        "implement:ledger-csv",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-03",
+        "node_id": "implement:ledger-csv",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h2"
+        ],
+        "created_at": "2026-09-13T06:03:17.869Z",
+        "updated_at": "2026-09-13T06:03:17.889Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "validated at implement:ledger-csv"
+    },
+    {
+      "id": "s35",
+      "kind": "decision",
+      "content": "csvEscape is exported (not module-private) so the escaping rules are directly unit-testable and reusable by a future CLI flag.",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "durable",
+      "tags": [
+        "implement:ledger-csv",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-03",
+        "node_id": "implement:ledger-csv",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h2"
+        ],
+        "created_at": "2026-09-13T06:03:17.869Z",
+        "updated_at": "2026-09-13T06:03:17.889Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "validated at implement:ledger-csv"
+    },
+    {
+      "id": "s36",
+      "kind": "decision",
+      "content": "ledgerToCsv emits no trailing newline; header-only output is exactly LEDGER_COLUMNS.join(','), as decided in the plan.",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "durable",
+      "tags": [
+        "implement:ledger-csv",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-03",
+        "node_id": "implement:ledger-csv",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h2"
+        ],
+        "created_at": "2026-09-13T06:03:17.872Z",
+        "updated_at": "2026-09-13T06:03:17.889Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "validated at implement:ledger-csv"
+    },
+    {
+      "id": "s37",
+      "kind": "decision",
+      "content": "Test suite includes a ~20-line RFC 4180 reader used only as an oracle, proving the writer is round-trippable rather than only asserting literal strings.",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "durable",
+      "tags": [
+        "implement:ledger-csv",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-03",
+        "node_id": "implement:ledger-csv",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h2"
+        ],
+        "created_at": "2026-09-13T06:03:17.872Z",
+        "updated_at": "2026-09-13T06:03:17.889Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "validated at implement:ledger-csv"
+    },
+    {
+      "id": "s38",
+      "kind": "assumption",
+      "content": "Consumers wanting a POSIX-style trailing newline will add it at the write site (e.g. writeFileSync(f, ledgerToCsv(rows) + \"\\n\")); the library deliberately does not.",
+      "status": "stale",
+      "confidence": 0.6,
+      "ttl": "volatile",
+      "tags": [
+        "implement:ledger-csv",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-03",
+        "node_id": "implement:ledger-csv",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h2"
+        ],
+        "created_at": "2026-09-13T06:03:17.872Z",
+        "updated_at": "2026-09-13T06:08:47.433Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "decayed after 4 nodes (volatile)"
+    },
+    {
+      "id": "s39",
+      "kind": "assumption",
+      "content": "No BOM is emitted, so Excel on Windows may mis-detect UTF-8 in non-ASCII node objectives. Acceptable for a telemetry export consumed by scripts/pandas.",
+      "status": "stale",
+      "confidence": 0.6,
+      "ttl": "volatile",
+      "tags": [
+        "implement:ledger-csv",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-03",
+        "node_id": "implement:ledger-csv",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h2"
+        ],
+        "created_at": "2026-09-13T06:03:17.872Z",
+        "updated_at": "2026-09-13T06:08:47.433Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "decayed after 4 nodes (volatile)"
+    },
+    {
+      "id": "s40",
+      "kind": "assumption",
+      "content": "Row separator is LF, not the CRLF strict RFC 4180 prescribes; escaping still quotes any field containing CR or LF, so output stays unambiguous for standard parsers.",
+      "status": "stale",
+      "confidence": 0.6,
+      "ttl": "volatile",
+      "tags": [
+        "implement:ledger-csv",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-03",
+        "node_id": "implement:ledger-csv",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h2"
+        ],
+        "created_at": "2026-09-13T06:03:17.872Z",
+        "updated_at": "2026-09-13T06:08:47.433Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "decayed after 4 nodes (volatile)"
+    },
+    {
+      "id": "s41",
+      "kind": "assumption",
+      "content": "ContextLedgerEntry remains flat; a nested field would render as [object Object] until a JSON.stringify branch is added to csvEscape.",
+      "status": "stale",
+      "confidence": 0.6,
+      "ttl": "volatile",
+      "tags": [
+        "implement:ledger-csv",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-03",
+        "node_id": "implement:ledger-csv",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h2"
+        ],
+        "created_at": "2026-09-13T06:03:17.872Z",
+        "updated_at": "2026-09-13T06:08:47.433Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "decayed after 4 nodes (volatile)"
+    },
+    {
+      "id": "s42",
+      "kind": "question",
+      "content": "The plan handoff said ContextLedgerEntry has 32 keys; the actual interface has 30. Confirm no ledger fields were expected to land as part of this change (the guard will catch future additions at compile time).",
+      "status": "stale",
+      "confidence": 0.6,
+      "ttl": "volatile",
+      "tags": [
+        "implement:ledger-csv",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-03",
+        "node_id": "implement:ledger-csv",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h2"
+        ],
+        "created_at": "2026-09-13T06:03:17.872Z",
+        "updated_at": "2026-09-13T06:08:47.433Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "decayed after 4 nodes (volatile)"
+    },
+    {
+      "id": "s43",
+      "kind": "question",
+      "content": "Should the CSV exporter be surfaced via CLI (e.g. `report --csv`)? Left library-only per the plan to keep the diff minimal.",
+      "status": "stale",
+      "confidence": 0.6,
+      "ttl": "volatile",
+      "tags": [
+        "implement:ledger-csv",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-03",
+        "node_id": "implement:ledger-csv",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h2"
+        ],
+        "created_at": "2026-09-13T06:03:17.873Z",
+        "updated_at": "2026-09-13T06:08:47.433Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "decayed after 4 nodes (volatile)"
+    },
+    {
+      "id": "s44",
+      "kind": "question",
+      "content": "Trailing newline: chosen as 'none' for testability - flag if downstream tooling expects one.",
+      "status": "stale",
+      "confidence": 0.6,
+      "ttl": "volatile",
+      "tags": [
+        "implement:ledger-csv",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-03",
+        "node_id": "implement:ledger-csv",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h2"
+        ],
+        "created_at": "2026-09-13T06:03:17.873Z",
+        "updated_at": "2026-09-13T06:08:47.433Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "decayed after 4 nodes (volatile)"
+    },
+    {
+      "id": "s45",
+      "kind": "artifact",
+      "key": "artifact:src/ledger-csv.ts",
+      "content": "src/ledger-csv.ts (changed in implement:ledger-csv)",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "session",
+      "tags": [
+        "implement:ledger-csv",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-03",
+        "node_id": "implement:ledger-csv",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h2"
+        ],
+        "created_at": "2026-09-13T06:03:17.873Z",
+        "updated_at": "2026-09-13T06:03:17.889Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "validated at implement:ledger-csv"
+    },
+    {
+      "id": "s46",
+      "kind": "artifact",
+      "key": "artifact:tests/ledger-csv.test.ts",
+      "content": "tests/ledger-csv.test.ts (changed in implement:ledger-csv)",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "session",
+      "tags": [
+        "implement:ledger-csv",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-03",
+        "node_id": "implement:ledger-csv",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h2"
+        ],
+        "created_at": "2026-09-13T06:03:17.873Z",
+        "updated_at": "2026-09-13T06:03:17.889Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "validated at implement:ledger-csv"
+    },
+    {
+      "id": "s47",
+      "kind": "completed_action",
+      "content": "implement:ledger-csv: Implemented part (B) of the objective: src/ledger-csv.ts exporting LEDGER_COLUMNS, csvEscape and ledgerToCsv, plus tests/ledger-csv.test.ts with six node:test cases. CSV quoting follows RFC 4180 (quote iff the field contains a comma, double-quote, LF or CR; embedded quotes doubled), numbers/booleans",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "session",
+      "tags": [
+        "implement:ledger-csv",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-03",
+        "node_id": "implement:ledger-csv",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h2"
+        ],
+        "created_at": "2026-09-13T06:03:17.873Z",
+        "updated_at": "2026-09-13T06:03:17.889Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "validated at implement:ledger-csv"
+    },
+    {
+      "id": "s48",
+      "kind": "decision",
+      "content": "src/registry.ts exports RoleStats, PromotionCandidate, RegistryFile and class SpecialistRegistry with ingestRun/ingestRuns/static findRunDirs/roles/candidates/runs/toJSON/save/static load/table/static reasonFor, plus static MIN_INVOCATIONS=3 and MIN_SUCCESS_RATE=0.8.",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "durable",
+      "tags": [
+        "implement:registry",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-02",
+        "node_id": "implement:registry",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h3"
+        ],
+        "created_at": "2026-09-13T06:05:23.720Z",
+        "updated_at": "2026-09-13T06:05:23.740Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "validated at implement:registry"
+    },
+    {
+      "id": "s49",
+      "kind": "decision",
+      "content": "Totals (total_cost_usd/total_input_tokens/total_output_tokens, nodes_completed/nodes_failed) are persisted and means/success_rate are recomputed in a private finalize(), making save/load lossless and allowing a loaded registry to keep ingesting further runs.",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "durable",
+      "tags": [
+        "implement:registry",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-02",
+        "node_id": "implement:registry",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h3"
+        ],
+        "created_at": "2026-09-13T06:05:23.720Z",
+        "updated_at": "2026-09-13T06:05:23.740Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "validated at implement:registry"
+    },
+    {
+      "id": "s50",
+      "kind": "decision",
+      "content": "ingestRun is idempotent per resolved absolute directory (a private ingested Set), so a repeated or overlapping scan never double-counts.",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "durable",
+      "tags": [
+        "implement:registry",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-02",
+        "node_id": "implement:registry",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h3"
+        ],
+        "created_at": "2026-09-13T06:05:23.720Z",
+        "updated_at": "2026-09-13T06:05:23.740Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "validated at implement:registry"
+    },
+    {
+      "id": "s51",
+      "kind": "decision",
+      "content": "ingestRun throws on a missing agents.json; malformed agents.json and missing/malformed ledger.jsonl or trace.jsonl are tolerated as empty (JSONL parsed line-by-line, blank/bad lines skipped).",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "durable",
+      "tags": [
+        "implement:registry",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-02",
+        "node_id": "implement:registry",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h3"
+        ],
+        "created_at": "2026-09-13T06:05:23.720Z",
+        "updated_at": "2026-09-13T06:05:23.740Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "validated at implement:registry"
+    },
+    {
+      "id": "s52",
+      "kind": "decision",
+      "content": "findRunDirs walks up to depth 3 from root, returns a directory as soon as it contains agents.json (never descending into it), skips node_modules/.git/workspace/invocations, returns [] for a nonexistent root, and returns a sorted list.",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "durable",
+      "tags": [
+        "implement:registry",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-02",
+        "node_id": "implement:registry",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h3"
+        ],
+        "created_at": "2026-09-13T06:05:23.721Z",
+        "updated_at": "2026-09-13T06:05:23.740Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "validated at implement:registry"
+    },
+    {
+      "id": "s53",
+      "kind": "decision",
+      "content": "save() returns the written RegistryFile and mkdirs the parent directory; the CLI only writes when --out is passed (print-only otherwise) and defaults --runs to ./runs.",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "durable",
+      "tags": [
+        "implement:registry",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-02",
+        "node_id": "implement:registry",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h3"
+        ],
+        "created_at": "2026-09-13T06:05:23.721Z",
+        "updated_at": "2026-09-13T06:05:23.740Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "validated at implement:registry"
+    },
+    {
+      "id": "s54",
+      "kind": "decision",
+      "content": "Thousands separators and percentages are formatted manually (regex + Math.round) rather than via toLocaleString, to keep output locale-independent and test-stable.",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "durable",
+      "tags": [
+        "implement:registry",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-02",
+        "node_id": "implement:registry",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h3"
+        ],
+        "created_at": "2026-09-13T06:05:23.721Z",
+        "updated_at": "2026-09-13T06:05:23.740Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "validated at implement:registry"
+    },
+    {
+      "id": "s55",
+      "kind": "decision",
+      "content": "Promotion remains advisory: candidates() is a pure derivation over roles(), each candidate carries status:'candidate' and a reason ending in '(human approval required)'; no code path writes to agents.json (asserted byte-identical in a test).",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "durable",
+      "tags": [
+        "implement:registry",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-02",
+        "node_id": "implement:registry",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h3"
+        ],
+        "created_at": "2026-09-13T06:05:23.721Z",
+        "updated_at": "2026-09-13T06:05:23.740Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "validated at implement:registry"
+    },
+    {
+      "id": "s56",
+      "kind": "assumption",
+      "content": "ContextLedgerEntry.estimated_cost_usd / input_tokens / output_tokens are the right cost and token fields for 'mean cost / mean input / mean output' (cache tokens are deliberately not folded in).",
+      "status": "stale",
+      "confidence": 0.6,
+      "ttl": "volatile",
+      "tags": [
+        "implement:registry",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-02",
+        "node_id": "implement:registry",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h3"
+        ],
+        "created_at": "2026-09-13T06:05:23.721Z",
+        "updated_at": "2026-09-13T06:08:47.433Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "decayed after 4 nodes (volatile)"
+    },
+    {
+      "id": "s57",
+      "kind": "assumption",
+      "content": "Roles are keyed by the human-readable role string from agents.json; if factory.ts ROLE labels are renamed, historical registry.json entries will not merge with new runs.",
+      "status": "stale",
+      "confidence": 0.6,
+      "ttl": "volatile",
+      "tags": [
+        "implement:registry",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-02",
+        "node_id": "implement:registry",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h3"
+        ],
+        "created_at": "2026-09-13T06:05:23.722Z",
+        "updated_at": "2026-09-13T06:08:47.433Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "decayed after 4 nodes (volatile)"
+    },
+    {
+      "id": "s58",
+      "kind": "assumption",
+      "content": "The parallel agent's src/ledger-csv.ts and tests/ledger-csv.test.ts are final; I only ran them, so a later rewrite there is outside my verification.",
+      "status": "stale",
+      "confidence": 0.6,
+      "ttl": "volatile",
+      "tags": [
+        "implement:registry",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-02",
+        "node_id": "implement:registry",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h3"
+        ],
+        "created_at": "2026-09-13T06:05:23.722Z",
+        "updated_at": "2026-09-13T06:08:47.433Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "decayed after 4 nodes (volatile)"
+    },
+    {
+      "id": "s59",
+      "kind": "question",
+      "content": "Should candidate roles be scoped per model (e.g. 'Planning Architect on haiku') rather than aggregated across models? Currently models are merged into one row per role.",
+      "status": "stale",
+      "confidence": 0.6,
+      "ttl": "volatile",
+      "tags": [
+        "implement:registry",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-02",
+        "node_id": "implement:registry",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h3"
+        ],
+        "created_at": "2026-09-13T06:05:23.722Z",
+        "updated_at": "2026-09-13T06:08:47.433Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "decayed after 4 nodes (volatile)"
+    },
+    {
+      "id": "s60",
+      "kind": "question",
+      "content": "Should the registry expose a CLI flag to filter by mode or experiment id once many runs accumulate?",
+      "status": "stale",
+      "confidence": 0.6,
+      "ttl": "volatile",
+      "tags": [
+        "implement:registry",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-02",
+        "node_id": "implement:registry",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h3"
+        ],
+        "created_at": "2026-09-13T06:05:23.722Z",
+        "updated_at": "2026-09-13T06:08:47.433Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "decayed after 4 nodes (volatile)"
+    },
+    {
+      "id": "s61",
+      "kind": "artifact",
+      "key": "artifact:src/registry.ts",
+      "content": "src/registry.ts (changed in implement:registry)",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "session",
+      "tags": [
+        "implement:registry",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-02",
+        "node_id": "implement:registry",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h3"
+        ],
+        "created_at": "2026-09-13T06:05:23.722Z",
+        "updated_at": "2026-09-13T06:05:23.740Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "validated at implement:registry"
+    },
+    {
+      "id": "s62",
+      "kind": "artifact",
+      "key": "artifact:tests/registry.test.ts",
+      "content": "tests/registry.test.ts (changed in implement:registry)",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "session",
+      "tags": [
+        "implement:registry",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-02",
+        "node_id": "implement:registry",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h3"
+        ],
+        "created_at": "2026-09-13T06:05:23.722Z",
+        "updated_at": "2026-09-13T06:05:23.740Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "validated at implement:registry"
+    },
+    {
+      "id": "s63",
+      "kind": "artifact",
+      "key": "artifact:src/cli.ts",
+      "content": "src/cli.ts (changed in implement:registry)",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "session",
+      "tags": [
+        "implement:registry",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-02",
+        "node_id": "implement:registry",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h3"
+        ],
+        "created_at": "2026-09-13T06:05:23.722Z",
+        "updated_at": "2026-09-13T06:05:23.740Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "validated at implement:registry"
+    },
+    {
+      "id": "s64",
+      "kind": "completed_action",
+      "content": "implement:registry: Implemented Part (A): src/registry.ts with a read-only SpecialistRegistry that ingests run directories (agents.json + ledger.jsonl + trace.jsonl), aggregates per-role stats (invocations, node success rate from node.completed vs node.failed, totals + means for cost/input/output tokens, distinct agent",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "session",
+      "tags": [
+        "implement:registry",
+        "implement"
+      ],
+      "provenance": {
+        "producer": "implementation-engineer-02",
+        "node_id": "implement:registry",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h3"
+        ],
+        "created_at": "2026-09-13T06:05:23.722Z",
+        "updated_at": "2026-09-13T06:05:23.740Z",
+        "produced_at_node_index": 1
+      },
+      "status_reason": "validated at implement:registry"
+    },
+    {
+      "id": "s65",
+      "kind": "evidence",
+      "key": "tests",
+      "content": "Tests (test): pass, exit 0",
+      "status": "accepted",
+      "confidence": 1,
+      "ttl": "session",
+      "tags": [
+        "tests"
+      ],
+      "provenance": {
+        "producer": "test-runner",
+        "node_id": "test",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h4"
+        ],
+        "created_at": "2026-09-13T06:05:25.212Z",
+        "updated_at": "2026-09-13T06:05:25.212Z",
+        "produced_at_node_index": 3
+      }
+    },
+    {
+      "id": "s66",
+      "kind": "decision",
+      "content": "Verdict pass: all seven acceptance criteria confirmed by reading the files and the reported command output (41/41 tests, tsc exit 0); no correctness bug found that affects specified behaviour.",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "durable",
+      "tags": [
+        "review",
+        "review"
+      ],
+      "provenance": {
+        "producer": "independent-reviewer-04",
+        "node_id": "review",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h6"
+        ],
+        "created_at": "2026-09-13T06:08:47.415Z",
+        "updated_at": "2026-09-13T06:08:47.433Z",
+        "produced_at_node_index": 4
+      },
+      "status_reason": "validated at review"
+    },
+    {
+      "id": "s67",
+      "kind": "decision",
+      "content": "The four findings above are recorded as follow-up items, not blockers: none of them changes the output of any acceptance-criteria command or violates a stated constraint.",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "durable",
+      "tags": [
+        "review",
+        "review"
+      ],
+      "provenance": {
+        "producer": "independent-reviewer-04",
+        "node_id": "review",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h6"
+        ],
+        "created_at": "2026-09-13T06:08:47.417Z",
+        "updated_at": "2026-09-13T06:08:47.433Z",
+        "produced_at_node_index": 4
+      },
+      "status_reason": "validated at review"
+    },
+    {
+      "id": "s68",
+      "kind": "assumption",
+      "content": "I have read-only authority and could not execute commands, so the exit codes for `node --test tests/*.test.ts` and `npx tsc --noEmit -p tsconfig.json` are taken from the packet's test output; I confirmed the source contains nothing that would obviously break either (no enums, no parameter properties, import type only, `let entries;` is a legal evolving-any, and noUncheckedIndexedAccess is off in tsconfig.json).",
+      "status": "tentative",
+      "confidence": 0.6,
+      "ttl": "volatile",
+      "tags": [
+        "review",
+        "review"
+      ],
+      "provenance": {
+        "producer": "independent-reviewer-04",
+        "node_id": "review",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h6"
+        ],
+        "created_at": "2026-09-13T06:08:47.417Z",
+        "updated_at": "2026-09-13T06:08:47.433Z",
+        "produced_at_node_index": 4
+      },
+      "status_reason": "validated at review"
+    },
+    {
+      "id": "s69",
+      "kind": "assumption",
+      "content": "Test counts reconcile (23 baseline + 6 ledger-csv + 12 registry = 41), which I take as evidence no pre-existing test was deleted or weakened; I did not diff the untouched test files.",
+      "status": "tentative",
+      "confidence": 0.6,
+      "ttl": "volatile",
+      "tags": [
+        "review",
+        "review"
+      ],
+      "provenance": {
+        "producer": "independent-reviewer-04",
+        "node_id": "review",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h6"
+        ],
+        "created_at": "2026-09-13T06:08:47.417Z",
+        "updated_at": "2026-09-13T06:08:47.433Z",
+        "produced_at_node_index": 4
+      },
+      "status_reason": "validated at review"
+    },
+    {
+      "id": "s70",
+      "kind": "question",
+      "content": "Should SpecialistRegistry.load persist absolute run paths (or a run fingerprint) so the ingest-idempotency guard survives a save/load cycle?",
+      "status": "active",
+      "confidence": 0.6,
+      "ttl": "volatile",
+      "tags": [
+        "review",
+        "review"
+      ],
+      "provenance": {
+        "producer": "independent-reviewer-04",
+        "node_id": "review",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h6"
+        ],
+        "created_at": "2026-09-13T06:08:47.417Z",
+        "updated_at": "2026-09-13T06:08:47.433Z",
+        "produced_at_node_index": 4
+      },
+      "status_reason": "validated at review"
+    },
+    {
+      "id": "s71",
+      "kind": "question",
+      "content": "Should RoleStats.agents/runs be keyed by run-qualified ids (e.g. run-a/planning-architect-01) to avoid cross-run id collisions?",
+      "status": "active",
+      "confidence": 0.6,
+      "ttl": "volatile",
+      "tags": [
+        "review",
+        "review"
+      ],
+      "provenance": {
+        "producer": "independent-reviewer-04",
+        "node_id": "review",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h6"
+        ],
+        "created_at": "2026-09-13T06:08:47.417Z",
+        "updated_at": "2026-09-13T06:08:47.433Z",
+        "produced_at_node_index": 4
+      },
+      "status_reason": "validated at review"
+    },
+    {
+      "id": "s72",
+      "kind": "question",
+      "content": "Should the registry distinguish failed node attempts (which produce no ledger row) from invocations in the reported stats, or document the current asymmetry in the table header?",
+      "status": "active",
+      "confidence": 0.6,
+      "ttl": "volatile",
+      "tags": [
+        "review",
+        "review"
+      ],
+      "provenance": {
+        "producer": "independent-reviewer-04",
+        "node_id": "review",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h6"
+        ],
+        "created_at": "2026-09-13T06:08:47.417Z",
+        "updated_at": "2026-09-13T06:08:47.433Z",
+        "produced_at_node_index": 4
+      },
+      "status_reason": "validated at review"
+    },
+    {
+      "id": "s73",
+      "kind": "question",
+      "content": "Should ledgerToCsv gain an opt-in BOM and/or formula-injection guard if the export is ever handed to spreadsheet users rather than scripts?",
+      "status": "active",
+      "confidence": 0.6,
+      "ttl": "volatile",
+      "tags": [
+        "review",
+        "review"
+      ],
+      "provenance": {
+        "producer": "independent-reviewer-04",
+        "node_id": "review",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h6"
+        ],
+        "created_at": "2026-09-13T06:08:47.417Z",
+        "updated_at": "2026-09-13T06:08:47.433Z",
+        "produced_at_node_index": 4
+      },
+      "status_reason": "validated at review"
+    },
+    {
+      "id": "s74",
+      "kind": "completed_action",
+      "content": "review: Reviewed src/registry.ts, src/ledger-csv.ts, src/cli.ts and both test files against the objective, cross-checking the registry's joins against the real artifact producers (orchestrator.ts:115/135/140/190/280, factory.ts:73-79) and LEDGER_COLUMNS against types.ts:297-328. All seven acceptance criteri",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "session",
+      "tags": [
+        "review",
+        "review"
+      ],
+      "provenance": {
+        "producer": "independent-reviewer-04",
+        "node_id": "review",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h6"
+        ],
+        "created_at": "2026-09-13T06:08:47.417Z",
+        "updated_at": "2026-09-13T06:08:47.433Z",
+        "produced_at_node_index": 4
+      },
+      "status_reason": "validated at review"
+    },
+    {
+      "id": "s75",
+      "kind": "evidence",
+      "key": "review:1",
+      "content": "Review review: pass — 11 findings",
+      "status": "accepted",
+      "confidence": 0.6,
+      "ttl": "session",
+      "tags": [
+        "review",
+        "review"
+      ],
+      "provenance": {
+        "producer": "independent-reviewer-04",
+        "node_id": "review",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [
+          "h6"
+        ],
+        "created_at": "2026-09-13T06:08:47.417Z",
+        "updated_at": "2026-09-13T06:08:47.433Z",
+        "produced_at_node_index": 4
+      },
+      "status_reason": "validated at review"
+    },
+    {
+      "id": "s76",
+      "kind": "decision",
+      "key": "gate",
+      "content": "Human gate: pass",
+      "status": "accepted",
+      "confidence": 1,
+      "ttl": "durable",
+      "tags": [
+        "gate"
+      ],
+      "provenance": {
+        "producer": "human_gate",
+        "node_id": "human_gate",
+        "workflow_id": "exp001-registry-run2-governed",
+        "evidence_refs": [],
+        "created_at": "2026-09-13T06:08:47.435Z",
+        "updated_at": "2026-09-13T06:08:47.435Z",
+        "produced_at_node_index": 5
+      }
+    }
+  ]
+}

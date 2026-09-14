@@ -46,7 +46,7 @@ async function main() {
   } else if (cmd === "calibrate") {
     console.log(JSON.stringify(await calibrate(), null, 2));
   } else if (cmd === "reevaluate") {
-    const exp = await reevaluate(v.dir!);
+    const exp = await reevaluate(v.dir!, { blind_model: v["blind-model"] });
     console.log(JSON.stringify(exp.comparison, null, 2));
   } else if (cmd === "report") {
     const md = reportFromDir(v.dir!);

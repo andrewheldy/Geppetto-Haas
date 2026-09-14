@@ -77,7 +77,7 @@ export async function runExperiment(o: ExperimentOptions): Promise<ExperimentSum
 }
 
 /** Re-score finished runs (deterministic checks only; blind reviews are kept) and regenerate summary + report. */
-export async function reevaluate(dir: string): Promise<ExperimentSummary> {
+export async function reevaluate(dir: string, opts: { blind_model?: string } = {}): Promise<ExperimentSummary> {
   const root = resolve(dir);
   const exp: ExperimentSummary = JSON.parse(readFileSync(join(root, "summary.json"), "utf8"));
   const task = loadTask(join(root, "task.json"));
@@ -87,6 +87,10 @@ export async function reevaluate(dir: string): Promise<ExperimentSummary> {
     m.dir = join(root, m.summary.mode);
     const fresh = await evaluateAcceptance(task, join(m.dir, "workspace"), runtime, { workflow_id: m.summary.workflow_id, mode: m.summary.mode, retries: m.summary.retries, review_findings: m.evaluation.review_findings });
     m.evaluation = { ...fresh, blind_review: m.evaluation.blind_review };
+    if (opts.blind_model && (!m.evaluation.blind_review || m.evaluation.blind_review.score < 0)) {
+      const diff = readFileSync(join(m.dir, "diff.patch"), "utf8");
+      m.evaluation.blind_review = await blindReview(task, diff, makeRuntime("claude", { log_dir: join(m.dir, "invocations") }), opts.blind_model, m.blind_label ?? "A", join(m.dir, "workspace"));
+    }
     rebuildLedger(m.dir, runtime, task);
     Object.assign(m.summary, new ContextLedger(join(m.dir, "ledger.jsonl")).totals());
     m.summary.evaluation = m.evaluation;

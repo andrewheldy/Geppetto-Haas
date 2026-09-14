@@ -51,7 +51,7 @@ export async function blindReview(task: Task, diff: string, runtime: RuntimeAdap
     invocation_id: `blind-${randomUUID().slice(0, 8)}`, agent_id: "blind-evaluator", node_id: "evaluation", model, effort: "medium" as const,
     system_prompt: "You are a strict, independent code reviewer. You do not know how the artifact was produced. Score 0-10 for correctness, completeness against the acceptance criteria, test quality, and code quality. List concrete findings.",
     prompt: `# Artifact ${label}\n\n## Objective\n${task.objective}\n\n## Constraints\n${task.constraints.map((c) => `- ${c}`).join("\n")}\n\n## Acceptance criteria\n${task.acceptance_criteria.map((c) => `- ${c.type === "manual" ? c.description : JSON.stringify(c)}`).join("\n")}\n\n## Diff\n\`\`\`diff\n${diff.slice(0, 60000)}\n\`\`\``,
-    tools: [], cwd, max_turns: 1, json_schema: BLIND_REVIEW_SCHEMA,
+    tools: [], cwd, max_turns: 3, json_schema: BLIND_REVIEW_SCHEMA,
   };
   const r = await runtime.invoke(req);
   const s = (r.structured ?? {}) as { score?: number; findings?: string[] };
