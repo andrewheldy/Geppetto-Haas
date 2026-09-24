@@ -1,11 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { join } from "node:path";
-import { HSCManager } from "../src/hsc.ts";
-import { HistoricalStore } from "../src/history.ts";
-import { Tracer } from "../src/trace.ts";
-import { ContextGovernor } from "../src/governor.ts";
-import { node } from "../src/planner.ts";
+import { HSCManager } from "../../src/lab/hsc.ts";
+import { HistoricalStore } from "../../src/lab/history.ts";
+import { Tracer } from "../../src/lab/trace.ts";
+import { ContextGovernor } from "../../src/lab/governor.ts";
+import { node } from "../../src/lab/planner.ts";
 import { tmp } from "./helpers.ts";
 
 function gov() {

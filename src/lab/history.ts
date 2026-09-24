@@ -1,6 +1,6 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { estimateTokens } from "./tokens.ts";
+import { estimateTokens } from "../tokens.ts";
 
 export interface HistoryRecord {
   id: string;

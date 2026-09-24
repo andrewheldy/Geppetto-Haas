@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { DeterministicPlanner } from "../src/planner.ts";
-import { DeterministicRouter } from "../src/router.ts";
-import { analyzeCapabilities, createAgent, resolveTools } from "../src/factory.ts";
+import { DeterministicPlanner } from "../../src/lab/planner.ts";
+import { DeterministicRouter } from "../../src/lab/router.ts";
+import { analyzeCapabilities, createAgent, resolveTools } from "../../src/lab/factory.ts";
 import { task } from "./helpers.ts";
 
 test("planner emits the default build loop with a deterministic test join and bounded review loop", () => {

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { HSCManager } from "../src/hsc.ts";
+import { HSCManager } from "../../src/lab/hsc.ts";
 import { task } from "./helpers.ts";
 
 test("candidate state is not injectable until promoted; rejection preserves the entry", () => {

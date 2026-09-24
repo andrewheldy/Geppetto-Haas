@@ -1,7 +1,7 @@
 import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { Task } from "../src/types.ts";
+import type { Task } from "../../src/lab/types.ts";
 
 export function tmp(): string { return mkdtempSync(join(tmpdir(), "geppetto-")); }
 

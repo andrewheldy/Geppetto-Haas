@@ -1,4 +1,4 @@
-import type { TokenUsage } from "./types.ts";
+import type { TokenUsage } from "./lab/types.ts";
 
 /** ponytail: chars/4 heuristic. Provider-reported usage overrides this wherever available; entries carry `estimated`. */
 export function estimateTokens(text: string): number {

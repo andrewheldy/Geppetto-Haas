@@ -2,7 +2,7 @@ import type { HSCEntry, HandoffPacket, GraphNode, Budget } from "./types.ts";
 import type { HSCManager } from "./hsc.ts";
 import type { HistoricalStore, HistoryRecord } from "./history.ts";
 import type { Tracer } from "./trace.ts";
-import { estimateTokens } from "./tokens.ts";
+import { estimateTokens } from "../tokens.ts";
 
 export interface ContextItem { name: string; text: string; tags: string[]; provenance: string[]; priority: number; }
 export interface CompactionResult { summary: string; pre_tokens: number; post_tokens: number; history_ref: string; classification: Record<string, number>; }

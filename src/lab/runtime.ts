@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import type { CommandResult, InvocationRequest, InvocationResult, RuntimeAdapter, TokenUsage } from "./types.ts";
-import { activeContext, estimateCost, estimateTokens, usageFromEstimate } from "./tokens.ts";
+import { activeContext, estimateCost, estimateTokens, usageFromEstimate } from "../tokens.ts";
 
 // ---------------------------------------------------------------------------
 // Mock runtime: deterministic, scriptable. Used by tests and dry runs.

@@ -5,7 +5,7 @@ import type { ContextLedgerEntry, InvocationResult, RuntimeAdapter, Task, Workfl
 import { Tracer } from "./trace.ts";
 import { ContextLedger } from "./ledger.ts";
 import { HistoricalStore } from "./history.ts";
-import { activeContext, estimateTokens } from "./tokens.ts";
+import { activeContext, estimateTokens } from "../tokens.ts";
 import { BLIND_REVIEW_SCHEMA } from "./evaluator.ts";
 
 export interface ControlOptions {

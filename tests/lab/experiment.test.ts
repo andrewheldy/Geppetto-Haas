@@ -2,9 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { runExperiment } from "../src/experiment.ts";
-import { runControl } from "../src/control.ts";
-import { MockRuntime } from "../src/runtime.ts";
+import { runExperiment } from "../../src/lab/experiment.ts";
+import { runControl } from "../../src/lab/control.ts";
+import { MockRuntime } from "../../src/lab/runtime.ts";
 import { fakeRepo, task, tmp } from "./helpers.ts";
 
 test("control mode: one session whose context accumulates monotonically", async () => {

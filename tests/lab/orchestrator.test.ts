@@ -2,12 +2,12 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { Orchestrator } from "../src/orchestrator.ts";
-import { DeterministicPlanner } from "../src/planner.ts";
-import { DeterministicRouter } from "../src/router.ts";
-import { MockRuntime, type MockScenario } from "../src/runtime.ts";
+import { Orchestrator } from "../../src/lab/orchestrator.ts";
+import { DeterministicPlanner } from "../../src/lab/planner.ts";
+import { DeterministicRouter } from "../../src/lab/router.ts";
+import { MockRuntime, type MockScenario } from "../../src/lab/runtime.ts";
 import { fakeRepo, task, tmp } from "./helpers.ts";
-import type { Task } from "../src/types.ts";
+import type { Task } from "../../src/lab/types.ts";
 
 async function run(scenario: MockScenario = {}, t: Task = task()) {
   const out = tmp(); const ws = fakeRepo();

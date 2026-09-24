@@ -106,10 +106,12 @@ Both artifacts pass the same deterministic checks. The blind reviewer (sonnet, l
 
 ## Reproduce
 
+Since Geppetto V0.1 the rig lives in `src/lab/` and is reached through `geppetto lab`. The task specs in `tasks/` describe the pre-V0.1 layout (`src/orchestrator.ts`, ...), so for an exact reproduction check out commit `6e4d769` and use `node src/cli.ts <command>` there.
+
 ```bash
-node src/cli.ts calibrate
-node src/cli.ts experiment --task tasks/exp001-registry.json --runtime claude --blind-model sonnet --id my-run
-node src/cli.ts reevaluate --dir runs/my-run --blind-model sonnet
+node src/cli.ts lab calibrate
+node src/cli.ts lab experiment --task tasks/exp001-registry.json --runtime claude --blind-model sonnet --id my-run
+node src/cli.ts lab reevaluate --dir runs/my-run --blind-model sonnet
 ```
 
 ## Next three experiments

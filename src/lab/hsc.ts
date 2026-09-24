@@ -1,6 +1,6 @@
 import { writeFileSync } from "node:fs";
 import type { HSCDelta, HSCEntry, HSCState, StateKind, StateStatus, Task, TtlClass } from "./types.ts";
-import { estimateTokens } from "./tokens.ts";
+import { estimateTokens } from "../tokens.ts";
 
 export interface SliceFilter { kinds?: StateKind[]; tags?: string[]; statuses?: StateStatus[]; max_tokens?: number; }
 

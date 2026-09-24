@@ -2,7 +2,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import type { ContextPacket, ContextSection, GraphNode, HandoffPacket, Task } from "./types.ts";
 import type { ContextGovernor, ContextItem } from "./governor.ts";
-import { estimateTokens } from "./tokens.ts";
+import { estimateTokens } from "../tokens.ts";
 
 export interface CompileInput {
   task: Task;
