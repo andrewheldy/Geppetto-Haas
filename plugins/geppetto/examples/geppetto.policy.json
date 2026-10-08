@@ -1,0 +1,13 @@
+{
+  "version": "my-team/1",
+  "models": {
+    "sonnet": { "id": "claude-sonnet-5-5" }
+  },
+  "kinds": {
+    "review": { "tier": "opus" },
+    "explore": { "maxTurns": 10 }
+  },
+  "authorized": [],
+  "denyTrivialDelegation": false,
+  "classifier": { "enabled": false }
+}

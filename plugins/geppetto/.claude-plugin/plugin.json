@@ -1,0 +1,43 @@
+{
+  "name": "geppetto",
+  "version": "0.1.0",
+  "description": "Policy-based, explainable model routing for Claude Code subagents. Opt-in; fails open to native behavior.",
+  "author": { "name": "andrewheldy" },
+  "homepage": "https://github.com/andrewheldy/geppetto-haas",
+  "license": "MIT",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "mode": {
+      "type": "string",
+      "title": "Routing mode",
+      "description": "off: do nothing. observe: record what Geppetto would decide, change nothing. route: set the model (and narrow to a read-only agent) on subagent spawns that made no explicit choice.",
+      "default": "observe",
+      "options": ["off", "observe", "route"]
+    },
+    "modelParam": {
+      "type": "string",
+      "title": "How the chosen model is passed",
+      "description": "alias: haiku/sonnet/opus/fable, resolved by Claude Code to its current version. id: the policy's full model id.",
+      "default": "alias",
+      "options": ["alias", "id"]
+    },
+    "classifier": {
+      "type": "boolean",
+      "title": "Haiku classifier for ambiguous tasks",
+      "description": "Ask a low-effort Haiku call to classify tasks the deterministic rules cannot, when its expected value beats its cost. Off by default.",
+      "default": false
+    },
+    "enforceBudget": {
+      "type": "boolean",
+      "title": "Enforce subagent tool-call budgets",
+      "description": "Refuse a routed subagent's tool calls past its maxTurns budget so it reports back. Off by default (budgets are advisory).",
+      "default": false
+    },
+    "policyPath": {
+      "type": "string",
+      "title": "Policy file",
+      "description": "Project-relative JSON file merged over the default policy.",
+      "default": ".claude/geppetto.policy.json"
+    }
+  }
+}

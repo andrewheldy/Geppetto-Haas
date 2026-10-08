@@ -1,0 +1,51 @@
+[
+  { "kind": "trivial", "task": "Fix the typo in README.md: 'recieve' should be 'receive'." },
+  { "kind": "trivial", "task": "Bump the version in package.json to 0.2.0." },
+  { "kind": "trivial", "task": "Rename the variable tmp to buffer in src/io.ts." },
+  { "kind": "trivial", "task": "Print the contents of .gitignore." },
+  { "kind": "trivial", "task": "Add a comment above parseArgs explaining the return value." },
+  { "kind": "trivial", "task": "Count the lines in src/cli.ts." },
+
+  { "kind": "explore", "task": "Find every place in the codebase where the ledger is written to and report file paths with line numbers." },
+  { "kind": "explore", "task": "Where is the session token validated? Search the repo and report the function and file." },
+  { "kind": "explore", "task": "List all modules that import from src/lab/types.ts." },
+  { "kind": "explore", "task": "Survey the tests directory and summarize what each test file covers." },
+  { "kind": "explore", "task": "Locate the code that parses handoff proposals and explain how it handles malformed blocks. Do not modify anything." },
+  { "kind": "explore", "task": "Which functions call estimateTokens? Grep for usages and give me a short list." },
+  { "kind": "explore", "task": "Explore the adapters folder and explain how CLAUDE.md managed blocks are inserted and removed." },
+  { "kind": "explore", "task": "Search for TODO and FIXME comments across src/ and group them by file." },
+
+  { "kind": "implement", "task": "Implement a --json flag for `geppetto status` that prints the same information as JSON. Add it in src/status.ts and wire it in src/cli.ts." },
+  { "kind": "implement", "task": "Add a new command `geppetto export` that writes the accepted context to a single markdown file." },
+  { "kind": "implement", "task": "Create a Cursor adapter in src/adapters.ts that writes .cursor/rules/geppetto.mdc, mirroring the Claude adapter." },
+  { "kind": "implement", "task": "Update the capture step so that it records the git commit hash of the working tree in each run file." },
+  { "kind": "implement", "task": "Refactor src/select.ts to separate scoring from budgeting, keeping behavior identical." },
+  { "kind": "implement", "task": "Build a small HTTP endpoint that returns the current routing policy as JSON." },
+  { "kind": "implement", "task": "Extend the reconcile command to support a --dry-run option that shows what would change." },
+
+  { "kind": "test", "task": "Write unit tests for src/markdown.ts covering anchors with punctuation and duplicate headings." },
+  { "kind": "test", "task": "Add regression tests for the reconcile stale-base check." },
+  { "kind": "test", "task": "Improve test coverage of the context compiler; focus on budget truncation edge cases." },
+  { "kind": "test", "task": "Run the test suite and report which tests fail and why." },
+
+  { "kind": "review", "task": "Review the diff on this branch for correctness bugs and missing edge cases." },
+  { "kind": "review", "task": "Do a security review of the adapter installer: can it overwrite files outside the project?" },
+  { "kind": "review", "task": "Code review src/reconcile.ts and point out anything risky before we merge." },
+  { "kind": "review", "task": "Audit the plugin's permissions handling and report anything that could bypass the user's settings." },
+
+  { "kind": "debug", "task": "The test 'capture records runs' is failing with ENOENT on CI. Debug it and find the root cause." },
+  { "kind": "debug", "task": "geppetto init crashes with a stack trace when run in a directory without git. Figure out why." },
+  { "kind": "debug", "task": "There is an intermittent failure in the orchestrator tests that looks like a race condition between parallel implement nodes. Find the root cause." },
+  { "kind": "debug", "task": "Why does reconcile approve throw 'base hash mismatch' even right after capture? Investigate the error." },
+  { "kind": "debug", "task": "The experiment runner hangs forever on the control mode; it used to work last week. Track down the regression." },
+
+  { "kind": "architecture", "task": "Design the architecture for multi-agent handoff across organizations: what state crosses the boundary, trust model, and the trade-offs of push vs pull." },
+  { "kind": "architecture", "task": "Propose a migration strategy from Markdown canonical state to a structured store without breaking existing projects. Write an ADR." },
+  { "kind": "architecture", "task": "We need to decide between a plugin-per-runtime and a shared daemon for Geppetto routing. Lay out the trade-offs and recommend one." },
+  { "kind": "architecture", "task": "Design a scalable, distributed version of the experiment ledger that multiple machines can write to." },
+  { "kind": "architecture", "task": "Re-architect the context compiler so selection, rendering and budgeting are independent stages with clear boundaries between them." },
+
+  { "kind": "unknown", "task": "Hello." },
+  { "kind": "unknown", "task": "Thoughts?" },
+  { "kind": "unknown", "task": "Continue with the next item." }
+]

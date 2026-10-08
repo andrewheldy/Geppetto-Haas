@@ -1,0 +1,57 @@
+[
+  {"kind": "trivial", "task": "Fix the typo in the README: \"recieve\" should be \"receive\"."},
+  {"kind": "trivial", "task": "Bump the version in package.json from 2.3.1 to 2.3.2. Don't touch the lockfile."},
+  {"kind": "trivial", "task": "In src/utils/retry.ts, rename the local variable `tmp` to `attemptCount` (only inside that one function)."},
+  {"kind": "trivial", "task": "Add a one-line comment above the `MAX_BATCH = 500` constant in pipeline/config.py explaining it's capped by the upstream API's page limit."},
+  {"kind": "trivial", "task": "Run `node --version` and `npm --version` and tell me what they print."},
+  {"kind": "trivial", "task": "Change the default port in server/index.ts from 3000 to 8080. That's the only edit needed."},
+
+  {"kind": "explore", "task": "Where in this repo do we actually validate the JWT on incoming requests? I need file and function names, and whether it's middleware or per-route."},
+  {"kind": "explore", "task": "Walk me through how the Celery task for nightly invoice generation gets scheduled and retried. Read-only, just report what you find."},
+  {"kind": "explore", "task": "Find every place that reads process.env directly instead of going through the config module, and give me a list grouped by directory."},
+  {"kind": "explore", "task": "Survey how the frontend handles API errors. Is there a shared fetch wrapper or does each component roll its own? Summarize the patterns, with a few representative file paths, and don't change anything."},
+  {"kind": "explore", "task": "Which modules import from `legacy/db_helpers.py`? I'm trying to figure out how hard it would be to delete it, so I'd like a quick map of the callers and what functions they use."},
+  {"kind": "explore", "task": "Explain what the `--dry-run` flag does in the CLI's deploy command, tracing it from argument parsing down to wherever it gets honored."},
+
+  {"kind": "test", "task": "Write unit tests for the `parseDuration` helper in src/lib/time.ts, covering the empty string, negative values, mixed units like '1h30m', and overflow."},
+  {"kind": "test", "task": "Run the full pytest suite and tell me which tests fail, if any. Don't fix anything yet."},
+  {"kind": "test", "task": "The orders API has no integration tests for the refund endpoint. Add some with supertest, covering the happy path, a double refund, and refunding someone else's order (should 403)."},
+  {"kind": "test", "task": "Our coverage for the ETL transform module is stuck around 40%. Add pytest cases for the untested branches in transform/normalize.py, using small in-memory DataFrames as fixtures."},
+  {"kind": "test", "task": "Add a Playwright test that logs in, adds an item to the cart and checks out with the mocked payment provider. Make sure it passes locally."},
+  {"kind": "test", "task": "Convert the Jest tests under tests/legacy/ that use done-callbacks to async/await, and run them to confirm they still pass."},
+
+  {"kind": "implement", "task": "Add a `--format json|table` option to the `report` subcommand of our CLI. Default stays table. JSON output should be one object per line."},
+  {"kind": "implement", "task": "Implement rate limiting on POST /api/login: 5 attempts per IP per minute, return 429 with a Retry-After header. Redis is already wired up in src/cache.ts, so use that."},
+  {"kind": "implement", "task": "Refactor the three near-identical CSV loader functions in ingest/ into one parameterized loader. Keep the public function names as thin wrappers so callers don't change."},
+  {"kind": "implement", "task": "Port scripts/cleanup.js to TypeScript, keeping behavior identical, and wire it into the existing tsconfig build."},
+  {"kind": "implement", "task": "Build a dark-mode toggle for the settings page. Persist the choice in localStorage and respect prefers-color-scheme on first load. We use React with CSS variables for theming."},
+  {"kind": "implement", "task": "Add a Terraform variable for the S3 bucket's lifecycle expiration days (default 90) and plumb it through the module to the lifecycle rule. Update the example in the module README too."},
+
+  {"kind": "review", "task": "Review the diff on branch feature/webhook-signing for correctness and security. Pay particular attention to how the HMAC comparison is done and whether replayed requests are rejected."},
+  {"kind": "review", "task": "Can you take a look at the changes in PR 412 and tell me if it's safe to merge? Flag anything that smells off, though I don't need style nitpicks."},
+  {"kind": "review", "task": "Do a security audit of the file upload handler in api/uploads.py: path traversal, content-type trust, size limits, anything like that. Report findings ranked by severity, no edits."},
+  {"kind": "review", "task": "Look over the new SQL migration 0042_add_indexes.sql. Will it lock the table in Postgres on a big dataset, and is it reversible?"},
+  {"kind": "review", "task": "Give me a critical read of the React hooks in useCheckout.ts. I suspect stale closures and missing dependency array entries but want a second opinion."},
+  {"kind": "review", "task": "Audit our Dockerfile and docker-compose.yml for production-readiness: running as root, leaked secrets, pinned base images, healthchecks. Just list what you find."},
+
+  {"kind": "debug", "task": "The nightly import job has been hanging every few days with no log output after 'fetching batch'. Figure out why it stalls. My guess is a missing timeout on the HTTP client, but verify rather than assuming."},
+  {"kind": "debug", "task": "After upgrading to Node 20, `npm test` crashes with ERR_REQUIRE_ESM in the date-fns import. Find out what changed and why it only breaks under the test runner."},
+  {"kind": "debug", "task": "Users report that totals in the invoice PDF are off by a cent sometimes. Track down where the rounding goes wrong. I'd bet on float math somewhere in billing/."},
+  {"kind": "debug", "task": "Memory on the worker keeps climbing until it's OOM-killed after about six hours. Profile or reason through the code to find the leak; the queue consumer in workers/consumer.py is the likely area."},
+  {"kind": "debug", "task": "This test passes alone but fails when the whole suite runs: tests/test_cache.py::test_eviction. Find the cause of the cross-test interference."},
+  {"kind": "debug", "task": "Since yesterday's deploy, the /search endpoint returns an empty list whenever the query contains an apostrophe. Work out which commit introduced it and why."},
+
+  {"kind": "architecture", "task": "We're thinking of splitting our Django monolith's billing module into its own service. Lay out the trade-offs, the migration path with minimal downtime, and what you'd do about the shared database tables."},
+  {"kind": "architecture", "task": "Propose a design for adding multi-tenancy to our Node API. Compare schema-per-tenant versus a tenant_id column, and recommend one given we expect about 200 tenants and a few very large ones."},
+  {"kind": "architecture", "task": "Should our data pipeline move from cron-triggered Python scripts to Airflow, or is Prefect or plain Dagster a better fit for a team of three? Give me a recommendation and a phased rollout plan."},
+  {"kind": "architecture", "task": "Sketch a roadmap for moving the frontend from Create React App to Vite and then to Next.js. Which order, what risks, and what could we skip?"},
+  {"kind": "architecture", "task": "Design an approach for idempotent event processing in our order service so retries from the message broker never double-charge. Discuss options like dedupe tables and idempotency keys, and the failure modes of each."},
+  {"kind": "architecture", "task": "Evaluate whether we should replace our hand-rolled job queue in Postgres with SQS or BullMQ. I need a comparison covering operational cost, ordering guarantees and migration effort."},
+
+  {"kind": "unknown", "task": "Take a look at the auth stuff."},
+  {"kind": "unknown", "task": "Can you help with the thing we discussed about the pipeline?"},
+  {"kind": "unknown", "task": "Make it faster."},
+  {"kind": "unknown", "task": "The build is weird, sort it out."},
+  {"kind": "unknown", "task": "Handle the TODOs in the utils folder, or whatever seems most important."},
+  {"kind": "unknown", "task": "Do the usual cleanup before we ship."}
+]

@@ -117,6 +117,16 @@ Section content (Markdown, no # or ## headings).
 
 `init` only creates files under `.geppetto/`. Existing `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, Copilot, Cursor, Windsurf, Cline and OpenCode files are detected read-only. Single instruction files are offered as *candidates* to import, so nothing enters canonical state unreviewed. `geppetto adapter install claude|agents` adds one block delimited by `<!-- geppetto:begin … -->` / `<!-- geppetto:end -->`. `geppetto adapter remove` deletes exactly that block and restores the file byte-for-byte; if Geppetto created the file, it is deleted. Removing Geppetto entirely means removing any installed adapter block and then `.geppetto/`.
 
+## Claude Code routing mod
+
+`plugins/geppetto` is a Claude Code mod that picks the model (and, for exploration, the read-only agent) for each subagent Claude Code spawns. It uses a deterministic, explainable policy: exploration goes to Haiku, implementation to Sonnet, architecture to Opus, and escalation happens only on failure evidence. Explicit choices, pinned agents and permissions are never overridden. It starts in observe mode and fails open to native behavior.
+
+```
+/plugin install geppetto --marketplace andrewheldy/geppetto-haas
+```
+
+The routing core (`plugins/geppetto/core`) is dependency-free TypeScript shared with the lab orchestrator's router. Install and usage: [plugins/geppetto/README.md](plugins/geppetto/README.md). Design and measured results: [docs/ROUTING.md](docs/ROUTING.md).
+
 ## V0.1 status
 
 **Implemented and tested:** `init` (idempotent, detects 15 agent file locations, imports instruction files as candidates), `task` (deterministic selection, token budget with explicit overflow warning, generic Markdown output), `capture` (validated all-or-nothing), `reconcile` (approve/reject/defer/edit, stale and conflict refusal, path-traversal refusal), `status`, `clean`, and the `claude` and `agents` adapters. 40 tests: 17 for the core, including an end-to-end CLI loop, plus 23 for the lab.

@@ -3,3 +3,6 @@ node_modules/
 runs
 *.log
 .DS_Store
+
+# laid by Claude Code when it loads the plugin
+plugins/geppetto/.claude-plugin/types/
