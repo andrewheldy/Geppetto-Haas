@@ -1,0 +1,14 @@
+{
+  "name": "geppetto",
+  "owner": {
+    "name": "andrewheldy"
+  },
+  "description": "Geppetto plugins for Claude Code.",
+  "plugins": [
+    {
+      "name": "geppetto",
+      "source": "./plugins/geppetto",
+      "description": "Policy-based, explainable model routing for Claude Code subagents."
+    }
+  ]
+}

@@ -1,0 +1,537 @@
+{
+  "at": "2026-10-08T12:39:22.849Z",
+  "plugin": "geppetto 0.1.0",
+  "results": [
+    {
+      "scenario": "explore → Explore agent on haiku",
+      "mode": "route",
+      "main": "sonnet",
+      "checks": [
+        "PASS classified explore",
+        "PASS applied haiku + Explore",
+        "PASS subagent ran on haiku (saw claude-haiku-5-5)",
+        "PASS modelUsage shows haiku work (584 output tokens)"
+      ],
+      "decisions": [
+        {
+          "seq": 1,
+          "at": "2026-10-08T12:39:06.050Z",
+          "mode": "route",
+          "toolUseId": "toolu_01DaNrH7U9t5ZJKRfDX2NVpo",
+          "description": "Find files mentioning ledger",
+          "taskPreview": "Find every file in the directory tree under /tmp/geppetto-e2e-4Id7wu that mentions the word \"ledger\" (case-insensitive is fine). Report the list of file paths.",
+          "requested": {},
+          "resolvedAgent": "general-purpose",
+          "action": "route",
+          "delegate": true,
+          "agent": "Explore",
+          "model": "claude-haiku-5-5",
+          "alias": "haiku",
+          "kind": "explore",
+          "complexity": "medium",
+          "confidence": 0.95,
+          "source": "rules",
+          "reason": "explore/medium (confidence 0.95, rules) → Explore on haiku",
+          "maxTurns": 15,
+          "contextRefs": [
+            "/tmp/geppetto-e2e-4Id7wu"
+          ],
+          "fallback": "escalate → sonnet (failure evidence of kind capability|test_failure|budget_exhausted)",
+          "trace": [
+            "classifier off",
+            "explore → haiku (policy default)",
+            "no agent requested; read-only Explore selected for explore"
+          ],
+          "classifierCalled": false,
+          "applied": {
+            "model": "haiku",
+            "agent": "Explore"
+          },
+          "agentId": "af49c513c04b79692",
+          "spawnedModel": "claude-haiku-5-5",
+          "observedModel": "claude-haiku-5-5",
+          "outcome": {
+            "reason": "answer"
+          }
+        }
+      ],
+      "modelUsage": {
+        "claude-haiku-5-5": {
+          "inputTokens": 1277,
+          "outputTokens": 584,
+          "cacheReadInputTokens": 28555,
+          "cacheCreationInputTokens": 12351,
+          "webSearchRequests": 0,
+          "costUSD": 0.0022491250000000003,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 244,
+          "canonicalModel": "claude-haiku-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        },
+        "claude-sonnet-5-5": {
+          "inputTokens": 4,
+          "outputTokens": 539,
+          "cacheReadInputTokens": 67139,
+          "cacheCreationInputTokens": 14455,
+          "webSearchRequests": 0,
+          "costUSD": 0.0766458,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 0,
+          "canonicalModel": "claude-sonnet-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "costUsd": 0.078894925
+    },
+    {
+      "scenario": "implementation → sonnet",
+      "mode": "route",
+      "main": "haiku",
+      "checks": [
+        "PASS classified implement, applied sonnet",
+        "PASS subagent ran on sonnet (saw claude-sonnet-5-5)",
+        "PASS modelUsage shows sonnet work (678)",
+        "PASS slug.js was written"
+      ],
+      "decisions": [
+        {
+          "seq": 1,
+          "at": "2026-10-08T12:39:06.224Z",
+          "mode": "route",
+          "toolUseId": "toolu_01MTRhdZXHM9TFzXMogUpdkY",
+          "description": "Implement slugify in slug.js",
+          "taskPreview": "Working directory: /tmp/geppetto-e2e-S1Opb4 (not a git repo).\n\nTask: Create the file slug.js in that directory containing a function slugify(text) that:\n- lowercases the input,\n- trims leading/trailing whitespace,\n- replaces each run of non-alphanumeric characters with a single hyphen.\n\nExport it with module.exports = { slugify }; or module.exports = slugify; — pick the form that makes `require('.",
+          "requested": {},
+          "resolvedAgent": "general-purpose",
+          "action": "route",
+          "delegate": true,
+          "agent": "general-purpose",
+          "model": "claude-sonnet-5-5",
+          "alias": "sonnet",
+          "kind": "implement",
+          "complexity": "low",
+          "confidence": 0.95,
+          "source": "rules",
+          "reason": "implement/low (confidence 0.95, rules) → sonnet",
+          "maxTurns": 30,
+          "contextRefs": [
+            "slug.js",
+            "/tmp/geppetto-e2e-S1Opb4",
+            "leading/trailing",
+            "./slug"
+          ],
+          "fallback": "escalate → opus (failure evidence of kind capability|test_failure|budget_exhausted)",
+          "trace": [
+            "classifier off",
+            "implement → sonnet (policy default)"
+          ],
+          "classifierCalled": false,
+          "applied": {
+            "model": "sonnet"
+          },
+          "agentId": "a4ff603c3aef909c2",
+          "spawnedModel": "claude-sonnet-5-5",
+          "observedModel": "claude-sonnet-5-5",
+          "outcome": {
+            "reason": "answer"
+          }
+        }
+      ],
+      "modelUsage": {
+        "claude-haiku-5-5": {
+          "inputTokens": 1313,
+          "outputTokens": 639,
+          "cacheReadInputTokens": 68734,
+          "cacheCreationInputTokens": 14950,
+          "webSearchRequests": 0,
+          "costUSD": 0.004128140000000001,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 143,
+          "canonicalModel": "claude-haiku-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        },
+        "claude-sonnet-5-5": {
+          "inputTokens": 6,
+          "outputTokens": 678,
+          "cacheReadInputTokens": 85121,
+          "cacheCreationInputTokens": 12865,
+          "webSearchRequests": 0,
+          "costUSD": 0.055978700000000006,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 64,
+          "canonicalModel": "claude-sonnet-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "costUsd": 0.06010684
+    },
+    {
+      "scenario": "architecture → opus",
+      "mode": "route",
+      "main": "haiku",
+      "checks": [
+        "PASS classified architecture, applied opus",
+        "PASS subagent ran on opus (saw claude-opus-5-5)",
+        "PASS modelUsage shows opus work (486)"
+      ],
+      "decisions": [
+        {
+          "seq": 1,
+          "at": "2026-10-08T12:38:59.890Z",
+          "mode": "route",
+          "toolUseId": "toolu_01HjMUC9zSP4aeSfEjNHwxNU",
+          "description": "Design multi-region ingestion architecture",
+          "taskPreview": "Design the architecture for a multi-region event ingestion service. Compare two options and their trade-offs, then recommend one. Answer in under 150 words. Do not read or write any files; answer from reasoning alone.",
+          "requested": {},
+          "resolvedAgent": "general-purpose",
+          "action": "route",
+          "delegate": true,
+          "agent": "general-purpose",
+          "model": "claude-opus-5-5",
+          "alias": "opus",
+          "kind": "architecture",
+          "complexity": "high",
+          "confidence": 0.95,
+          "source": "rules",
+          "reason": "architecture/high (confidence 0.95, rules) → opus",
+          "maxTurns": 40,
+          "contextRefs": [],
+          "fallback": "none (already at the strongest permitted tier)",
+          "trace": [
+            "classifier off",
+            "architecture → opus (policy default)"
+          ],
+          "classifierCalled": false,
+          "applied": {
+            "model": "opus"
+          },
+          "agentId": "a4a9fd2c364e3e4cc",
+          "spawnedModel": "claude-opus-5-5",
+          "observedModel": "claude-opus-5-5",
+          "outcome": {
+            "reason": "answer"
+          }
+        }
+      ],
+      "modelUsage": {
+        "claude-haiku-5-5": {
+          "inputTokens": 1305,
+          "outputTokens": 267,
+          "cacheReadInputTokens": 66919,
+          "cacheCreationInputTokens": 16650,
+          "webSearchRequests": 0,
+          "costUSD": 0.00426319,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 0,
+          "canonicalModel": "claude-haiku-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        },
+        "claude-opus-5-5": {
+          "inputTokens": 2,
+          "outputTokens": 486,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 31745,
+          "webSearchRequests": 0,
+          "costUSD": 0.168453,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 99,
+          "canonicalModel": "claude-opus-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "costUsd": 0.17271619
+    },
+    {
+      "scenario": "trivial → refused, done inline",
+      "mode": "route",
+      "main": "sonnet",
+      "checks": [
+        "PASS first delegation refused as trivial",
+        "PASS typo fixed anyway"
+      ],
+      "decisions": [
+        {
+          "seq": 1,
+          "at": "2026-10-08T12:39:08.028Z",
+          "mode": "route",
+          "toolUseId": "toolu_01PpKXHr16V1kxmAW5b6sthB",
+          "description": "Fix README typo",
+          "taskPreview": "Fix the typo in README.md (in /tmp/geppetto-e2e-BNkQGQ): 'recieve' should be 'receive'. Replace all occurrences, then report what you changed in one sentence.",
+          "requested": {},
+          "resolvedAgent": "general-purpose",
+          "action": "route",
+          "delegate": false,
+          "agent": "general-purpose",
+          "model": "claude-haiku-5-5",
+          "alias": "haiku",
+          "kind": "trivial",
+          "complexity": "low",
+          "confidence": 0.85,
+          "source": "rules",
+          "reason": "trivial/low (confidence 0.85, rules) → haiku; keep inline",
+          "maxTurns": 3,
+          "contextRefs": [
+            "README.md",
+            "/tmp/geppetto-e2e-BNkQGQ"
+          ],
+          "fallback": "escalate → sonnet (failure evidence of kind capability|test_failure|budget_exhausted)",
+          "trace": [
+            "classifier off",
+            "trivial → haiku (policy default)",
+            "trivial task: better kept with main"
+          ],
+          "classifierCalled": false,
+          "applied": {
+            "denied": "Geppetto: this looks like a trivial task (trivial/low (confidence 0.85, rules) → haiku; keep inline). Do it directly instead of delegating. If delegation is intended, call Agent again with an explicit subagent_type or model."
+          }
+        }
+      ],
+      "modelUsage": {
+        "claude-haiku-5-5": {
+          "inputTokens": 1272,
+          "outputTokens": 23,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.0001387,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 0,
+          "canonicalModel": "claude-haiku-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        },
+        "claude-sonnet-5-5": {
+          "inputTokens": 8,
+          "outputTokens": 865,
+          "cacheReadInputTokens": 150059,
+          "cacheCreationInputTokens": 14966,
+          "webSearchRequests": 0,
+          "costUSD": 0.09854180000000001,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 351,
+          "canonicalModel": "claude-sonnet-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "costUsd": 0.0986805
+    },
+    {
+      "scenario": "explicit model kept",
+      "mode": "route",
+      "main": "sonnet",
+      "checks": [
+        "PASS decision keep (explicit haiku)",
+        "PASS nothing applied",
+        "PASS subagent ran on haiku, not opus (saw claude-haiku-5-5)"
+      ],
+      "decisions": [
+        {
+          "seq": 1,
+          "at": "2026-10-08T12:39:01.571Z",
+          "mode": "route",
+          "toolUseId": "toolu_01BvQvxH7k4Fqv69DYqUcgrP",
+          "description": "Design multi-region ingestion architecture",
+          "taskPreview": "Design the architecture for a multi-region event ingestion service and list two trade-offs. Answer in under 100 words; do not read or write files.",
+          "requested": {
+            "model": "haiku"
+          },
+          "resolvedAgent": "general-purpose",
+          "action": "keep",
+          "delegate": true,
+          "agent": "general-purpose",
+          "model": "claude-haiku-5-5",
+          "alias": "haiku",
+          "kind": "architecture",
+          "complexity": "high",
+          "confidence": 0.95,
+          "source": "rules",
+          "reason": "explicit model \"haiku\" respected",
+          "maxTurns": 40,
+          "contextRefs": [],
+          "fallback": "native (runtime default applies)",
+          "trace": [
+            "classifier off",
+            "explicit model \"haiku\" respected"
+          ],
+          "classifierCalled": false,
+          "applied": {},
+          "agentId": "adb83ab3cb0eec9e0",
+          "spawnedModel": "claude-haiku-5-5",
+          "observedModel": "claude-haiku-5-5",
+          "outcome": {
+            "reason": "answer"
+          }
+        }
+      ],
+      "modelUsage": {
+        "claude-haiku-5-5": {
+          "inputTokens": 1302,
+          "outputTokens": 1481,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 31722,
+          "webSearchRequests": 0,
+          "costUSD": 0.0048359499999999995,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 1221,
+          "canonicalModel": "claude-haiku-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        },
+        "claude-sonnet-5-5": {
+          "inputTokens": 4,
+          "outputTokens": 475,
+          "cacheReadInputTokens": 67169,
+          "cacheCreationInputTokens": 14680,
+          "webSearchRequests": 0,
+          "costUSD": 0.0769118,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 0,
+          "canonicalModel": "claude-sonnet-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "costUsd": 0.08174775000000001
+    },
+    {
+      "scenario": "observe mode changes nothing",
+      "mode": "observe",
+      "main": "sonnet",
+      "checks": [
+        "PASS would route to haiku, applied nothing",
+        "PASS subagent inherited sonnet (saw claude-sonnet-5-5)"
+      ],
+      "decisions": [
+        {
+          "seq": 1,
+          "at": "2026-10-08T12:39:02.418Z",
+          "mode": "observe",
+          "toolUseId": "toolu_01UXJgwEMQS5e1pjKgnphcHZ",
+          "description": "Find files mentioning ledger",
+          "taskPreview": "Find every file in the directory /tmp/geppetto-e2e-BqD0nC that mentions the word \"ledger\" (case-insensitive) and report the file paths.",
+          "requested": {},
+          "resolvedAgent": "general-purpose",
+          "action": "route",
+          "delegate": true,
+          "agent": "Explore",
+          "model": "claude-haiku-5-5",
+          "alias": "haiku",
+          "kind": "explore",
+          "complexity": "medium",
+          "confidence": 0.95,
+          "source": "rules",
+          "reason": "explore/medium (confidence 0.95, rules) → Explore on haiku",
+          "maxTurns": 15,
+          "contextRefs": [
+            "/tmp/geppetto-e2e-BqD0nC"
+          ],
+          "fallback": "escalate → sonnet (failure evidence of kind capability|test_failure|budget_exhausted)",
+          "trace": [
+            "classifier off",
+            "explore → haiku (policy default)",
+            "no agent requested; read-only Explore selected for explore"
+          ],
+          "classifierCalled": false,
+          "applied": {},
+          "agentId": "af7b836902b1d69a2",
+          "spawnedModel": "claude-sonnet-5-5",
+          "observedModel": "claude-sonnet-5-5",
+          "outcome": {
+            "reason": "answer",
+            "failure": "test_failure",
+            "evidence": "Separately, the session reported several MCP servers that need authorization before their tools work (Asana, Atlassian, Datadog, Linear, Notion, Slack, Miro, Salesforce, HubSpot and others). This sess"
+          }
+        }
+      ],
+      "modelUsage": {
+        "claude-haiku-5-5": {
+          "inputTokens": 1271,
+          "outputTokens": 22,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.0001381,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 0,
+          "canonicalModel": "claude-haiku-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        },
+        "claude-sonnet-5-5": {
+          "inputTokens": 8,
+          "outputTokens": 789,
+          "cacheReadInputTokens": 98869,
+          "cacheCreationInputTokens": 47281,
+          "webSearchRequests": 0,
+          "costUSD": 0.16787529999999998,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 0,
+          "canonicalModel": "claude-sonnet-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "costUsd": 0.1680134
+    },
+    {
+      "scenario": "off mode is native",
+      "mode": "off",
+      "main": "sonnet",
+      "checks": [
+        "PASS no decisions recorded",
+        "PASS subagent ran on the inherited model"
+      ],
+      "decisions": [],
+      "modelUsage": {
+        "claude-haiku-5-5": {
+          "inputTokens": 1271,
+          "outputTokens": 22,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.0001381,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 0,
+          "canonicalModel": "claude-haiku-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        },
+        "claude-sonnet-5-5": {
+          "inputTokens": 8,
+          "outputTokens": 578,
+          "cacheReadInputTokens": 98873,
+          "cacheCreationInputTokens": 47154,
+          "webSearchRequests": 0,
+          "costUSD": 0.16527309999999998,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 0,
+          "canonicalModel": "claude-sonnet-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "costUsd": 0.16541119999999998
+    }
+  ]
+}

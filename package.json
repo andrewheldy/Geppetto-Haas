@@ -11,9 +11,11 @@
     "geppetto": "./src/cli.ts"
   },
   "scripts": {
-    "test": "node --test tests/*.test.ts tests/lab/*.test.ts",
+    "test": "node --test tests/*.test.ts tests/lab/*.test.ts tests/routing/*.test.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "geppetto": "node src/cli.ts"
+    "geppetto": "node src/cli.ts",
+    "e2e": "node tests/e2e/claude-code.ts",
+    "test:plugin": "claude plugin test plugins/geppetto && claude plugin validate plugins/geppetto"
   },
   "devDependencies": {
     "@types/node": "^24.13.4",
